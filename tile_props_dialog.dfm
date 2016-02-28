@@ -84,15 +84,6 @@ object TilePropertiesDialog: TTilePropertiesDialog
     OnMouseMove = FormMouseMove
     OnSelectCell = TilePropsGridSelectCell
   end
-  object cbHurtTilesMode: TCheckBox
-    Left = 8
-    Top = 417
-    Width = 97
-    Height = 17
-    Caption = 'Edit hurting tiles'
-    TabOrder = 1
-    OnClick = cbHurtTilesModeClick
-  end
   object seUsedAnimations: TSpinEdit
     Left = 240
     Top = 415
@@ -100,7 +91,7 @@ object TilePropertiesDialog: TTilePropertiesDialog
     Height = 22
     MaxValue = 15
     MinValue = 0
-    TabOrder = 2
+    TabOrder = 1
     Value = 0
     OnChange = seUsedAnimationsChange
   end
@@ -110,7 +101,7 @@ object TilePropertiesDialog: TTilePropertiesDialog
     Width = 145
     Height = 81
     ItemHeight = 13
-    TabOrder = 3
+    TabOrder = 2
     OnClick = lstPaletteAnimsClick
   end
   object sePaletteAnims: TSpinEdit
@@ -120,8 +111,25 @@ object TilePropertiesDialog: TTilePropertiesDialog
     Height = 22
     MaxValue = 5
     MinValue = 0
-    TabOrder = 4
+    TabOrder = 3
     Value = 0
     OnChange = sePaletteAnimsChange
+  end
+  object cbxMode: TComboBox
+    Left = 8
+    Top = 416
+    Width = 137
+    Height = 21
+    Style = csDropDownList
+    ItemHeight = 13
+    ItemIndex = 0
+    TabOrder = 4
+    Text = 'Edit tile properties'
+    OnChange = cbxModeChange
+    Items.Strings = (
+      'Edit tile properties'
+      'Edit hurting tiles'
+      'Show preset coverage'
+      'Show level coverage')
   end
 end

@@ -8,6 +8,10 @@ const max_map_width = 264;
 const max_map_height = 136;
 const max_undo_steps = 65535;
 
+const tile_erase = 511;
+const tile_pattern = 510;
+const tile_no_change = 500;
+
 // ============================================================================
 // Object types and constants
 // ============================================================================
@@ -186,8 +190,6 @@ type
   TSelectionBlock = record
     width: word;
     height: word;
-    layer: word;
-    all_layers: boolean;
     data: TMapData;
   end;
   TSelectionBlockPtr = ^TSelectionBlock;
@@ -267,13 +269,14 @@ type
     procedure paint_tile(x,y: integer; tile_index: word);
   public
     procedure paint_tile_rect(x, y, width, height: integer; tile_index: word);
+    function get_tile_index_prio(x,y: integer): word;
 
     procedure set_pattern(new_pattern: TBlockPresetPtr);
-    procedure copy_pattern(x, y, width, height, layer: integer);
+    procedure copy_pattern(x, y, width, height: integer);
     procedure rotate_pattern(direction: TDirection);
 
-    procedure copy_block(x, y, width, height, layer: integer; all_layers: boolean; block: TSelectionBlockPtr);
-    procedure put_block(x, y, layer: integer; all_layers: boolean; block: TSelectionBlockPtr);
+    procedure copy_block(x, y, width, height: integer; all_layers: boolean; block: TSelectionBlockPtr);
+    procedure put_block(x, y: integer; block: TSelectionBlockPtr);
 
     // Object manipulation methods
     function copy_object(obj_index, x, y: integer): integer;
@@ -344,7 +347,9 @@ begin
   MainWindow.Undo1.Enabled := true;
   MainWindow.Redo1.Enabled := false;
   // Modify the actual tile
-  map_data[x,y] := new_tile;
+  if new_tile.layers[0] <> tile_no_change then
+    map_data[x,y].layers[0] := new_tile.layers[0];
+  map_data[x,y].layers[1] := new_tile.layers[1];
   Renderer.invalidate_map_tile(x, y);
 end;
 
@@ -353,15 +358,15 @@ var
   new_tile: TMapTile;
 begin
   new_tile := map_data[x,y];
-  // Replace reserved value of 65534 by a tile from current pattern
-  if tile_index = 65534 then
+  // Replace reserved value by a tile from current pattern
+  if tile_index = tile_pattern then
   begin
     if (cur_pattern.width = 0) or (cur_pattern.height = 0) then
       exit;
     tile_index := cur_pattern.tiles[x mod cur_pattern.width, y mod cur_pattern.height];
   end;
   // Delete tile in foreground layer
-  if tile_index = 65535 then
+  if tile_index = tile_erase then
   begin
     new_tile.layers[1] := 0
   end else
@@ -385,12 +390,17 @@ begin
     end;
 end;
 
+function TMap.get_tile_index_prio(x, y: integer): word;
+begin
+  result := IfThen(map_data[x, y].layers[1] <> 0, map_data[x, y].layers[1], map_data[x, y].layers[0]);
+end;
+
 procedure TMap.set_pattern(new_pattern: TBlockPresetPtr);
 begin
   cur_pattern := new_pattern^;
 end;
 
-procedure TMap.copy_pattern(x, y, width, height, layer: integer);
+procedure TMap.copy_pattern(x, y, width, height: integer);
 var
   xx, yy: integer;
   mod_x, mod_y: integer;
@@ -405,7 +415,7 @@ begin
     begin
       if (x + xx < map_width) and (y + yy < map_height) then
       begin
-        tile := map_data[x + xx, y + yy].layers[layer];
+        tile := get_tile_index_prio(x + xx, y + yy);
       end else
       begin
         tile := 0;
@@ -455,15 +465,13 @@ begin
   end;
 end;
 
-procedure TMap.copy_block(x, y, width, height, layer: integer; all_layers: boolean; block: TSelectionBlockPtr);
+procedure TMap.copy_block(x, y, width, height: integer; all_layers: boolean; block: TSelectionBlockPtr);
 var
   xx, yy: integer;
   map_tile: TMapTile;
 begin
   block.width := width;
   block.height := height;
-  block.layer := layer;
-  block.all_layers := all_layers;
   for xx := 0 to width - 1 do
     for yy := 0 to height - 1 do
     begin
@@ -471,12 +479,14 @@ begin
       if (x + xx < map_width) and (y + yy < map_height) then
       begin
         map_tile := map_data[x + xx, y + yy];
+        if not all_layers and (map_tile.layers[1] <> 0) then
+          map_tile.layers[0] := tile_no_change;
       end;
       block.data[xx,yy] := map_tile;
     end;
 end;
 
-procedure TMap.put_block(x, y, layer: integer; all_layers: boolean; block: TSelectionBlockPtr);
+procedure TMap.put_block(x, y: integer; block: TSelectionBlockPtr);
 var
   xx, yy: integer;
 begin
@@ -486,11 +496,7 @@ begin
     for yy := 0 to block.height - 1 do
       if (x + xx < map_width) and (x + xx >= 0) and (y + yy < map_height) and (y + yy >= 0) then
       begin
-        if all_layers then
-        begin
-          modify_map_tile(x + xx, y + yy, block.data[xx, yy])
-        end else
-          paint_tile(x + xx, y + yy, block.data[xx, yy].layers[layer]);
+        modify_map_tile(x + xx, y + yy, block.data[xx, yy])
       end;
 end;
 

@@ -18,7 +18,7 @@ type
       procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
   end;
 
-const layer_marker_color: array[0..1] of TColor = ($C020C0, $0000FF);
+const layer_marker_color: TColor = $C020C0;
 
 const lock_type_letter: array[0..3] of char = ('Y', 'R', 'G', 'B');
 const switch_type_letter: array[0..5] of char = ('U', 'A', 'U', 'T', 'R', 'O');
@@ -51,7 +51,6 @@ type
     N2: TMenuItem;
     Exit1: TMenuItem;
     Selectnext1: TMenuItem;
-    N3: TMenuItem;
     Map1: TMenuItem;
     Setmapsize1: TMenuItem;
     Shiftmap1: TMenuItem;
@@ -102,7 +101,6 @@ type
     lbBrushSize: TLabel;
     Exportmap1: TMenuItem;
     btnSavePreset: TButton;
-    Usepredefinedtiles1: TMenuItem;
     N6: TMenuItem;
     Levelproperties1: TMenuItem;
     N7: TMenuItem;
@@ -326,17 +324,13 @@ type
     minimap_buffer: TBitmap;
 
     // Editing variables
-    cur_layer: integer;
     cur_preset_group: integer;
-    cur_preset_layer: integer;
+    cur_tileset_offset: integer;
     cur_tile_index: word;
-    cur_predefined_tile: array[0..1] of integer;
-    cur_selected_preset: array[0..1, 0..1] of integer;
+    cur_selected_preset: array[0..1] of integer;
     cur_block: TSelectionBlock;
-    cur_copied_pattern: array[0..1] of TBlockPreset;
-    cur_copied_block: array[0..1] of TSelectionBlock;
-    cur_object_mode: integer;
-    cur_object_speedbtn: TSpeedButton;
+    cur_item_type: integer;
+    cur_item_speedbtn: TSpeedButton;
     updating: boolean;
 
     // Selection variables
@@ -585,13 +579,13 @@ begin
     end;
     107: // Num+
     begin
-      //Map.adjust_objects_in_block(1, Addr(cur_block));
-      //draw_cursor_image;
+      cur_tileset_offset := 1;
+      draw_block_image;
     end;
     109: // Num-
     begin
-      //Map.adjust_objects_in_block(-1, Addr(cur_block));
-      //draw_cursor_image;
+      cur_tileset_offset := 0;
+      draw_block_image;
     end;
   end;
   // Shift + arrows = same as Num keys
@@ -666,13 +660,13 @@ begin
       if key = 190 then key := ord('>');
       if key = 186 then key := ord(':');
       if key = 191 then key := ord('?');
-      cur_selected_preset[cur_preset_group, cur_preset_layer] := Tileset.block_key_to_index(key);
+      cur_selected_preset[cur_preset_group] := Tileset.block_key_to_index(key);
       update_editing_mode;
       exit;
     end;
   end;
   // Numeric keyboard keys
-  if mode(mTileMode) and not Usepredefinedtiles1.Checked then
+  if mode(mTileMode) then
   begin
     case key of
       // Change current tile index
@@ -683,22 +677,7 @@ begin
       else
         exit;
     end;
-    cur_tile_index := (cur_tile_index + step) and 255;
-    update_editing_mode;
-    exit;
-  end else
-  if mode(mTileMode) and Usepredefinedtiles1.Checked then
-  begin
-    case key of
-      // Change current tile index
-      98:  {Num2} step :=  8;
-      100: {Num4} step := -1;
-      102: {Num6} step :=  1;
-      104: {Num8} step := -8;
-      else
-        exit;
-    end;
-    cur_predefined_tile[cur_preset_layer] := (cur_predefined_tile[cur_preset_layer] + step) and (cnt_predefined_tiles - 1);
+    cur_tile_index := (cur_tile_index + step + cnt_tileset_tiles) mod cnt_tileset_tiles;
     update_editing_mode;
     exit;
   end else
@@ -714,8 +693,7 @@ begin
         exit;
     end;
     draw_block_image;
-    cur_selected_preset[bpgPatternPreset, cur_preset_layer] := -1;
-    cur_copied_pattern[cur_preset_layer] := Map.pattern;
+    cur_selected_preset[bpgPatternPreset] := -1;
     exit;
   end else
   if mode(mBlockMode) then
@@ -927,7 +905,6 @@ begin
   pointer := GlobalLock(handle);
 
   RbBlockMode.Checked := true;
-  cbAllLayers.Checked := pointer.all_layers;
   if EditorPages.ActivePageIndex <> 0 then
   begin
     EditorPages.TabIndex := 0;
@@ -979,8 +956,6 @@ begin
 end;
 
 procedure TMainWindow.Setmapsize1Click(Sender: TObject);
-var
-  tileset_index: integer;
 begin
   SetDialog.select_menu(1);
   if SetDialog.ModalResult = mrCancel then
@@ -1199,25 +1174,14 @@ begin
     if mode(mTileMode) then
     begin
       // Get tile index from map
-      cur_tile_index := Map.data[map_x, map_y].layers[cur_layer];
-      if Usepredefinedtiles1.Checked then
-      begin
-        // Find which predefined tile was selected
-        cur_predefined_tile[cur_preset_layer] := -1;
-        for i := 0 to cnt_predefined_tiles - 1 do
-          if Tileset.predefined_tiles[cur_preset_layer, i] = cur_tile_index then
-          begin
-            cur_predefined_tile[cur_preset_layer] := i;
-            break;
-          end;
-      end;
+      cur_tile_index := Map.get_tile_index_prio(map_x, map_y);
       update_editing_mode;
     end else
     // Select a single tile as a pattern
     if mode(mPatternMode) then
     begin
-      Map.copy_pattern(map_x, map_y, 1, 1, cur_layer);
-      cur_selected_preset[bpgPatternPreset, cur_preset_layer] := -1;
+      Map.copy_pattern(map_x, map_y, 1, 1);
+      cur_selected_preset[bpgPatternPreset] := -1;
       draw_block_image;
     end else
     // Cancel current block
@@ -1269,7 +1233,7 @@ begin
     // Paint tile
     if mode(mTileMode) then
     begin
-      if (cur_layer = 0) and (ssShift in Shift) then
+      if ssShift in Shift then
         Map.smooth_edges(map_x, map_y, 0)
       else
         Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, cur_tile_index);
@@ -1277,7 +1241,7 @@ begin
     // Paint pattern
     if mode(mPatternMode) then
     begin
-      Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, 65534);
+      Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, tile_pattern);
     end else
     // Place block
     if mode(mBlockMode) then
@@ -1287,7 +1251,7 @@ begin
       if (cursor_left <> map_x) or (cursor_top <> map_y) then
         // Enable additional clicks if cursor image was moved from mouse cursor position
         mouse_already_clicked := false;
-      Map.put_block(cursor_left, cursor_top, cur_layer, cbAllLayers.Checked, Addr(cur_block));
+      Map.put_block(cursor_left, cursor_top, Addr(cur_block));
     end else
     // Place object
     if mode(mObject) then
@@ -1346,7 +1310,7 @@ begin
     // Place item
     if mode(mItem) then
     begin
-      index := RandomRange(Map.leveldata.tileFirstItemType[cur_object_mode], Map.leveldata.tileLastItemType[cur_object_mode]);
+      index := RandomRange(Map.leveldata.tileFirstItemType[cur_item_type], Map.leveldata.tileLastItemType[cur_item_type]);
       Map.paint_tile_rect(map_x, map_y, 1, 1, index);
     end;
   end else
@@ -1357,12 +1321,12 @@ begin
     // Erase tiles
     if mode(mTileMode) or mode(mPatternMode) then
     begin
-      Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, 65535);
+      Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, tile_erase);
     end else
     // Erase items
-    if mode(mitem) then
+    if mode(mItem) then
     begin
-      Map.paint_tile_rect(map_x, map_y, 1, 1, 65535);
+      Map.paint_tile_rect(map_x, map_y, 1, 1, tile_erase);
     end else
     // Remove object
     if mode(mObject) then
@@ -1398,7 +1362,7 @@ begin
     if rbTileMode.Checked then
       Map.fill_area_start(mouse_old_x, mouse_old_y, cur_tile_index)
     else if rbPatternMode.Checked then
-      Map.fill_area_start(mouse_old_x, mouse_old_y, 65534);
+      Map.fill_area_start(mouse_old_x, mouse_old_y, tile_pattern);
     Map.compute_statistics;
     render_minimap;
     render_map;
@@ -1434,19 +1398,18 @@ begin
     begin
       // Erase tiles
       if (mode(mTileMode) or mode(mPatternMode)) and (Button = mbRight) then
-        Map.paint_tile_rect(min_x, min_y, size_x, size_y, 65535)
+        Map.paint_tile_rect(min_x, min_y, size_x, size_y, tile_erase)
       // Paint tiles
       else if mode(mTileMode) and (ssCtrl in Shift) then
         Map.paint_tile_rect(min_x, min_y, size_x, size_y, cur_tile_index)
       // Paint pattern
       else if mode(mPatternMode) and (ssCtrl in Shift) then
-        Map.paint_tile_rect(min_x, min_y, size_x, size_y, 65534)
+        Map.paint_tile_rect(min_x, min_y, size_x, size_y, tile_pattern)
       // Select pattern
       else if mode(mPatternMode) and (ssShift in Shift) then
       begin
-        Map.copy_pattern(min_x, min_y, size_x, size_y, cur_layer);
-        cur_copied_pattern[cur_preset_layer] := Map.pattern;
-        cur_selected_preset[bpgPatternPreset, cur_preset_layer] := -1;
+        Map.copy_pattern(min_x, min_y, size_x, size_y);
+        cur_selected_preset[bpgPatternPreset] := -1;
         btnSavePreset.Caption := 'Save pattern as preset';
         btnSavePreset.Visible := true;
         draw_block_image;
@@ -1454,14 +1417,8 @@ begin
       // Select and copy block
       else if mode(mBlockMode) then
       begin
-        Map.copy_block(min_x, min_y, size_x, size_y, cur_layer, cbAllLayers.Checked, Addr(cur_block));
-        cur_copied_block[cur_preset_layer] := cur_block;
-        cur_selected_preset[bpgBlockPreset, cur_preset_layer] := -1;
-        if cbAllLayers.Checked then
-        begin
-          cur_copied_block[1 - cur_preset_layer] := cur_block;
-          cur_selected_preset[bpgBlockPreset, 1 - cur_preset_layer] := -1;
-        end;
+        Map.copy_block(min_x, min_y, size_x, size_y, cbAllLayers.Checked, Addr(cur_block));
+        cur_selected_preset[bpgBlockPreset] := -1;
         if not cbAllLayers.Checked and (size_x <= max_block_preset_size) and (size_y <= max_block_preset_size) then
         begin
           btnSavePreset.Caption := 'Save block as preset';
@@ -1469,14 +1426,7 @@ begin
         end;
         draw_cursor_image;
         draw_block_image;
-        // Erase copied area
-        if ssCtrl in Shift then
-        begin
-          for i := 0 to 1 do
-            if cbAllLayers.Checked or (i = cur_layer) then
-              Map.paint_tile_rect(min_x, min_y, size_x, size_y, 65535);
-        end else
-          exit;
+        exit;
       end;
     end else
     // Place door entrance
@@ -1570,14 +1520,9 @@ end;
 procedure TMainWindow.BlockImageMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  if rbTileMode.Checked and not Usepredefinedtiles1.Checked then
+  if rbTileMode.Checked then
   begin
-    cur_tile_index := (Y div 16) * 16 + (X div 16);
-    update_editing_mode;
-  end else
-  if rbTileMode.Checked and Usepredefinedtiles1.Checked then
-  begin
-    cur_predefined_tile[cur_preset_layer] := (Y div 32) * 8 + (X div 32);
+    cur_tile_index := cur_tileset_offset * 256 + (Y div 16) * 16 + (X div 16);
     update_editing_mode;
   end else
   if rbPatternMode.Checked or rbBlockMode.Checked then
@@ -1613,8 +1558,8 @@ begin
   preset_index := -1;
   if mode(mPatternMode) then
   begin
-    preset_index := Tileset.add_preset(Addr(Map.pattern), bpgPatternPreset, cur_preset_layer);
-    cur_selected_preset[bpgPatternPreset, cur_preset_layer] := preset_index;
+    preset_index := Tileset.add_preset(Addr(Map.pattern), bpgPatternPreset);
+    cur_selected_preset[bpgPatternPreset] := preset_index;
   end else
   if mode(mBlockMode) then
   begin
@@ -1622,16 +1567,16 @@ begin
     tmp_preset.height := cur_block.height;
     for x := 0 to tmp_preset.width - 1 do
       for y := 0 to tmp_preset.height - 1 do
-        tmp_preset.tiles[x, y] := cur_block.data[x, y].layers[cur_preset_layer];
-    preset_index := Tileset.add_preset(Addr(tmp_preset), bpgBlockPreset, cur_preset_layer);
-    cur_selected_preset[bpgBlockPreset, cur_preset_layer] := preset_index;
+        tmp_preset.tiles[x, y] := IfThen(cur_block.data[x, y].layers[0] <> tile_no_change, cur_block.data[x, y].layers[0], cur_block.data[x, y].layers[1]);
+    preset_index := Tileset.add_preset(Addr(tmp_preset), bpgBlockPreset);
+    cur_selected_preset[bpgBlockPreset] := preset_index;
   end;
   if preset_index = -1 then
   begin
     Application.MessageBox('Maximum number of presets was reached.', 'Error', MB_ICONERROR);
   end else
   begin
-    BlockPresetDialog.update_presets(cur_preset_group, cur_preset_layer);
+    BlockPresetDialog.update_presets(cur_preset_group);
     btnSavePreset.Visible := false;
   end;
 end;
@@ -1639,22 +1584,22 @@ end;
 procedure TMainWindow.sbObjectClick(Sender: TObject);
 begin
   // Clicked on button which is already active - keep it active
-  if cur_object_speedbtn = (Sender as TSpeedButton) then
+  if cur_item_speedbtn = (Sender as TSpeedButton) then
   begin
-    cur_object_speedbtn.Down := true;
+    cur_item_speedbtn.Down := true;
     exit;
   end;
   // Deactivate active button
-  if cur_object_speedbtn <> nil then
+  if cur_item_speedbtn <> nil then
   begin
-    cur_object_speedbtn.AllowAllUp := true;
-    cur_object_speedbtn.Down := false;
+    cur_item_speedbtn.AllowAllUp := true;
+    cur_item_speedbtn.Down := false;
   end;
   // Activate the clicked button
-  cur_object_speedbtn := (Sender as TSpeedButton);
-  cur_object_speedbtn.Down := true;
-  cur_object_speedbtn.AllowAllUp := false;
-  cur_object_mode := cur_object_speedbtn.Tag;
+  cur_item_speedbtn := (Sender as TSpeedButton);
+  cur_item_speedbtn.Down := true;
+  cur_item_speedbtn.AllowAllUp := false;
+  cur_item_type := cur_item_speedbtn.Tag;
   render_editing_marker;
 end;
 
@@ -2051,7 +1996,7 @@ begin
     if mode(mDoor) then
       mark_color := $C04080;
     if mode(mTileMode) or (mode(mPatternMode) and not (ssShift in cur_shift_state)) or (mode(mBlockMode) and not cbAllLayers.Checked) then
-      mark_color := layer_marker_color[cur_layer];
+      mark_color := layer_marker_color;
     Renderer.draw_editing_marker(MapCanvas.Canvas, map_canvas_left, map_canvas_top, map_canvas_width, map_canvas_height,
       Addr(Map.data), min_x * 16, min_y * 16, (max_x-min_x+1) * 16, (max_y-min_y+1) * 16, psSolid, mark_color, '');
     StatusBar.Panels[1].Text := inttostr(max_x-min_x+1) + ' x ' + inttostr(max_y-min_y+1);
@@ -2060,7 +2005,7 @@ begin
   begin
     // Draw paint brush marker
     Renderer.draw_editing_marker(MapCanvas.Canvas, map_canvas_left, map_canvas_top, map_canvas_width, map_canvas_height,
-      Addr(Map.data), mouse_old_x * 16, mouse_old_y * 16, tbBrushWidth.Position * 16, tbBrushHeight.Position * 16, psDot, layer_marker_color[cur_layer], '');
+      Addr(Map.data), mouse_old_x * 16, mouse_old_y * 16, tbBrushWidth.Position * 16, tbBrushHeight.Position * 16, psDot, layer_marker_color, '');
   end else
   begin
     Renderer.remove_editing_marker(MapCanvas.Canvas);
@@ -2086,10 +2031,8 @@ begin
     end else
       item_buttons[i].Glyph.Canvas.Rectangle(0,0,32,32);
   end;
-  cur_selected_preset[0,0] := 0;
-  cur_selected_preset[0,1] := 0;
-  cur_selected_preset[1,0] := 0;
-  cur_selected_preset[1,1] := 0;
+  cur_selected_preset[0] := 0;
+  cur_selected_preset[1] := 0;
   LevelPropertiesDialog.update_contents;
   update_editing_mode;
 end;
@@ -2542,7 +2485,6 @@ begin
     mPainting:        result := (mode(mTile) and (rbTileMode.Checked or rbPatternMode.Checked) and not selection_started) or mode(mItem);
     mSelecting:       result := ((mode(mPatternMode) or mode(mBlockMode)) and (ssShift in cur_shift_state)) or
                                 ((mode(mTileMode) or (mode(mPatternMode))) and (ssCtrl in cur_shift_state)) or
-                                (mode(mObject) and ((cur_object_mode = 302) or (cur_object_mode = 401) or (cur_object_mode = 501))) or
                                 ((EditorPages.TabIndex = 2) and sbDoorEntrance.Down);
     mRightBtnScroll:  result := mode(mBlockMode) or (selection_started and (ssLeft in cur_shift_state)) or (mode(mObject) and mode(mSelecting));
     mPixelCoords:     result := mode(mObject) or (mode(mDoor) and sbDoorDestination.Down);
@@ -2633,11 +2575,7 @@ end;
 
 procedure TMainWindow.update_editing_mode;
 begin
-  if mode(mTileMode) and Usepredefinedtiles1.Checked then
-  begin
-    if cur_predefined_tile[cur_preset_layer] <> -1 then
-      cur_tile_index := Tileset.predefined_tiles[cur_preset_layer, cur_predefined_tile[cur_preset_layer]];
-  end else
+  if not mode(mTileMode) then
   begin
     select_current_preset;
   end;
@@ -2645,26 +2583,22 @@ begin
   render_editing_marker;
   mouse_already_clicked := false;
   if (BlockPresetDialog <> nil) then
-    BlockPresetDialog.update_presets(cur_preset_group, cur_preset_layer);
+    BlockPresetDialog.update_presets(cur_preset_group);
 end;
 
 procedure TMainWindow.select_current_preset;
 var
   preset_index: integer;
   preset: TBlockPresetPtr;
-  x, y, z: integer;
+  x, y: integer;
 begin
-  preset_index := cur_selected_preset[cur_preset_group, cur_preset_layer];
+  preset_index := cur_selected_preset[cur_preset_group];
   if preset_index = -1 then
   begin
-    if cur_preset_group = bpgPatternPreset then
-      Map.set_pattern(Addr(cur_copied_pattern[cur_preset_layer]))
-    else
-      cur_block := cur_copied_block[cur_preset_layer];
     draw_cursor_image;
     exit;
   end;
-  preset := Addr(Tileset.block_presets[cur_preset_group, cur_preset_layer, preset_index]);
+  preset := Addr(Tileset.block_presets[cur_preset_group, preset_index]);
   if cur_preset_group = bpgPatternPreset then
   begin
     Map.set_pattern(preset);
@@ -2674,8 +2608,8 @@ begin
     for x:= 0 to max_block_preset_size - 1 do
       for y := 0 to max_block_preset_size - 1 do
       begin
-        for z := 0 to 2 do
-          cur_block.data[x,y].layers[z] := 255;
+        cur_block.data[x,y].layers[0] := tile_no_change;
+        cur_block.data[x,y].layers[1] := 0;
       end;
     // Copy block data from the block preset
     cur_block.width := preset.width;
@@ -2683,7 +2617,7 @@ begin
     for x:= 0 to cur_block.width - 1 do
       for y := 0 to cur_block.height - 1 do
       begin
-        cur_block.data[x,y].layers[cur_preset_layer] := preset.tiles[x,y];
+        cur_block.data[x,y].layers[Tileset.tile_layer[preset.tiles[x,y]]] := preset.tiles[x,y];
       end;
   end;
   btnSavePreset.Visible := false;
@@ -2708,8 +2642,6 @@ begin
 end;
 
 procedure TMainWindow.draw_cursor_image;
-var
-  all_layers: boolean;
 begin
   if not mode(mBlockMode) then
     exit;
@@ -2718,11 +2650,10 @@ begin
   CursorImage.Picture.Bitmap.Width := cur_block.width * 32 + 1;
   CursorImage.Picture.Bitmap.Height := cur_block.height * 32 + 1;
   // Render cursor image
-  all_layers := cbAllLayers.Checked;
   Renderer.render_map_contents(CursorImage.Canvas, 0, 0, cur_block.width, cur_block.height, 0, 0, Addr(cur_block.data), 0,
-    (cur_layer = 0) or all_layers, (cur_layer = 1) or all_layers, true, false, false, false, false,
+    true, true, true, false, false, false, false,
     false);
-  CursorImage.Canvas.Pen.Color := IfThen(all_layers, clMaroon, layer_marker_color[cur_layer]);
+  CursorImage.Canvas.Pen.Color := layer_marker_color;
   CursorImage.Canvas.Brush.Style := bsClear;
   CursorImage.Canvas.Rectangle(0, 0, cur_block.width * 32 + 1, cur_block.height * 32 + 1);
   resize_cursor_image;
@@ -2736,7 +2667,6 @@ var
   border_x, border_y: integer;
   src_rect, dest_rect: TRect;
   str: String;
-  all_layers: boolean;
 begin
   BlockImage.Canvas.Brush.Style := bsSolid;
   BlockImage.Canvas.Pen.Style := psSolid;
@@ -2746,37 +2676,18 @@ begin
   if not Map.loaded then
     exit;
   // Tile mode - render tileset
-  if mode(mTileMode) and not Usepredefinedtiles1.Checked then
+  if mode(mTileMode) then
   begin
-    for i := 0 to cnt_tileset_tiles - 1 do
+    for i := cur_tileset_offset * 256 to cur_tileset_offset * 256 + 255 do
     begin
-      x := i mod 16;
-      y := i div 16;
+      x := (i and 255) mod 16;
+      y := (i and 255) div 16;
       tile_x := i mod tileset_cols;
       tile_y := i div tileset_cols;
       src_rect := Rect(tile_x*16,tile_y*16,tile_x*16+16,tile_y*16+16);
       dest_rect := Rect(x*16,y*16,x*16+16,y*16+16);
       BlockImage.Canvas.CopyRect(dest_rect, Tileset.tileimage.Canvas, src_rect);
       if (i = cur_tile_index) then
-      begin
-        BlockImage.Canvas.Brush.Style := bsClear;
-        BlockImage.Canvas.Pen.Color := clRed;
-        BlockImage.Canvas.Rectangle(dest_rect);
-      end;
-    end;
-  end else
-  if mode(mTileMode) and Usepredefinedtiles1.Checked then
-  begin
-    for i := 0 to cnt_predefined_tiles - 1 do
-    begin
-      x := i mod 8;
-      y := i div 8;
-      tile_x := Tileset.predefined_tiles[cur_preset_layer, i] mod tileset_cols;
-      tile_y := Tileset.predefined_tiles[cur_preset_layer, i] div tileset_cols;
-      src_rect := Rect(tile_x*16,tile_y*16,tile_x*16+16,tile_y*16+16);
-      dest_rect := Rect(x*32,y*32,x*32+32,y*32+32);
-      BlockImage.Canvas.CopyRect(dest_rect, Tileset.tileimage.Canvas, src_rect);
-      if (i = cur_predefined_tile[cur_preset_layer]) then
       begin
         BlockImage.Canvas.Brush.Style := bsClear;
         BlockImage.Canvas.Pen.Color := clRed;
@@ -2806,7 +2717,7 @@ begin
     str := '';
     if (cur_block.width = 0) or (cur_block.height = 0) then
       str := 'Empty block is selected.';
-    if (cur_block.width > 8) or (cur_block.height > 8) then
+    if (cur_block.width > max_block_preset_size) or (cur_block.height > max_block_preset_size) then
       str := 'Block is too big to display it here.';
     if str <> '' then
     begin
@@ -2815,9 +2726,8 @@ begin
     end;
     border_x := (BlockImage.Width - cur_block.width * 32) div 2;
     border_y := (BlockImage.Height - cur_block.height * 32) div 2;
-    all_layers := cbAllLayers.Checked;
     Renderer.render_map_contents(BlockImage.Canvas, 0, 0, cur_block.width, cur_block.height, border_x, border_y, Addr(cur_block.data), 0,
-      (cur_layer = 0) or all_layers, (cur_layer = 1) or all_layers, true, false, false, false, false,
+      true, true, true, false, false, false, false,
       false);
   end;
 end;

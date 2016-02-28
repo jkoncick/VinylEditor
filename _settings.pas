@@ -74,7 +74,6 @@ begin
   MainWindow.Width := ini.ReadInteger('GUI','MainWindow.Width',MainWindow.Width);
   MainWindow.Height := ini.ReadInteger('GUI','MainWindow.Height',MainWindow.Height);
   MainWindow.cbAllLayers.Checked := ini.ReadBool('GUI','MainWindow.cbAllLayers.Checked',MainWindow.cbAllLayers.Checked);
-  MainWindow.Usepredefinedtiles1.Checked := ini.ReadBool('GUI','MainWindow.Usepredefinedtiles1.Checked',MainWindow.Usepredefinedtiles1.Checked);
 end;
 
 procedure TSettings.load_postcreate_editor_settings;
@@ -123,7 +122,6 @@ begin
   ini.WriteInteger('GUI','MainWindow.Width',MainWindow.Width);
   ini.WriteInteger('GUI','MainWindow.Height',MainWindow.Height);
   ini.WriteBool('GUI','MainWindow.cbAllLayers.Checked',MainWindow.cbAllLayers.Checked);
-  ini.WriteBool('GUI','MainWindow.Usepredefinedtiles1.Checked',MainWindow.Usepredefinedtiles1.Checked);
   ini.WriteInteger('GUI','BlockPresetDialog.Left',BlockPresetDialog.Left);
   ini.WriteInteger('GUI','BlockPresetDialog.Top',BlockPresetDialog.Top);
   ini.WriteInteger('GUI','SetDialog.Left',SetDialog.Left);

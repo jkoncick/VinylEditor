@@ -261,7 +261,7 @@ object MainWindow: TMainWindow
             Top = 342
             Width = 97
             Height = 17
-            Caption = 'All layers mode'
+            Caption = 'Copy both layers'
             TabOrder = 3
             OnClick = EditingModeChange
           end
@@ -423,7 +423,7 @@ object MainWindow: TMainWindow
           Width = 145
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 1
           OnChange = cbxObjectTypeChange
         end
@@ -433,7 +433,7 @@ object MainWindow: TMainWindow
           Width = 145
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 2
           OnChange = cbxObjectBehaviorChange
         end
@@ -949,7 +949,7 @@ object MainWindow: TMainWindow
           Width = 145
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 2
           OnChange = cbxLockTransblockChange
         end
@@ -1242,15 +1242,6 @@ object MainWindow: TMainWindow
       object Loadcustomimage1: TMenuItem
         Caption = 'Load custom image'
         OnClick = Loadcustomimage1Click
-      end
-      object N3: TMenuItem
-        Caption = '-'
-      end
-      object Usepredefinedtiles1: TMenuItem
-        AutoCheck = True
-        Caption = 'Use predefined tiles'
-        ShortCut = 16469
-        OnClick = Usepredefinedtiles1Click
       end
     end
     object Map1: TMenuItem

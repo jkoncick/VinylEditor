@@ -11,7 +11,6 @@ type
     TilePropsGrid: TStringGrid;
     TilePropsImage: TImage;
     lbTileIndex: TLabel;
-    cbHurtTilesMode: TCheckBox;
     seUsedAnimations: TSpinEdit;
     lbUsedAnimations: TLabel;
     PaletteImage: TImage;
@@ -20,6 +19,7 @@ type
     sePaletteAnims: TSpinEdit;
     lbPaletteAnimsNum: TLabel;
     lbPaletteIndex: TLabel;
+    cbxMode: TComboBox;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
@@ -32,7 +32,7 @@ type
       Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure TilePropsImageMouseMove(Sender: TObject; Shift: TShiftState;
       X, Y: Integer);
-    procedure cbHurtTilesModeClick(Sender: TObject);
+    procedure cbxModeChange(Sender: TObject);
     procedure seUsedAnimationsChange(Sender: TObject);
     procedure PaletteImageMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
@@ -133,7 +133,9 @@ var
   tile_index: integer;
 begin
   tile_index := X div 16 + (Y div 16) * tileset_cols;
-  if cbHurtTilesMode.Checked then
+  if cbxMode.ItemIndex >= 2 then
+    exit;
+  if cbxMode.ItemIndex = 1 then
   begin
     Map.level_data.safeTiles[tile_index] := IfThen(Button = mbLeft, 0, 1);
     render_tileimage;
@@ -204,10 +206,10 @@ begin
   lbTileIndex.Caption := 'Tile: ' + inttostr(tile_index);
 end;
 
-procedure TTilePropertiesDialog.cbHurtTilesModeClick(Sender: TObject);
+procedure TTilePropertiesDialog.cbxModeChange(Sender: TObject);
 begin
   render_tileimage;
-  TilePropsGrid.Enabled := not cbHurtTilesMode.Checked;
+  TilePropsGrid.Enabled := cbxMode.ItemIndex = 0;
 end;
 
 procedure TTilePropertiesDialog.seUsedAnimationsChange(Sender: TObject);
@@ -329,7 +331,9 @@ procedure TTilePropertiesDialog.render_tileimage;
 var
   min, max: integer;
   tile_x, tile_y: integer;
-  i: integer;
+  i, j, x, y: integer;
+  tile_used: array[0..cnt_tileset_tiles-1] of boolean;
+  preset: ^TBlockPreset;
 begin
   if not Map.loaded then
     exit;
@@ -340,7 +344,38 @@ begin
   TilePropsImage.Canvas.CopyRect(Rect(0, 0, Tileset.tileimage.Width, Tileset.tileimage.height), Tileset.tileimage.Canvas, Rect(0, 0, Tileset.tileimage.Width, Tileset.tileimage.height));
   TilePropsImage.Canvas.Brush.Style := bsClear;
   TilePropsImage.Canvas.Pen.Color := clRed;
-  if cbHurtTilesMode.Checked then
+  // Mark tiles which are used in a preset or this level
+  if cbxMode.ItemIndex >= 2 then
+  begin
+    FillChar(tile_used, cnt_tileset_tiles, 0);
+    if cbxMode.ItemIndex = 2 then
+      for i := 0 to 1 do
+        for j := 0 to max_block_presets - 1 do
+        begin
+          preset := Addr(Tileset.block_presets[i,j]);
+          for x := 0 to preset.width - 1 do
+            for y := 0 to preset.height - 1 do
+              if preset.tiles[x, y] < cnt_tileset_tiles then
+                tile_used[preset.tiles[x, y]] := true;
+        end;
+    if cbxMode.ItemIndex = 3 then
+      for x := 0 to Map.width - 1 do
+        for y := 0 to Map.height - 1 do
+        begin
+          tile_used[Map.data[x,y].layers[0]] := true;
+          tile_used[Map.data[x,y].layers[1]] := true;
+        end;
+    for i := 0 to Tileset.num_tiles - 1 do
+    begin
+      tile_x := i mod tileset_cols;
+      tile_y := i div tileset_cols;
+      if tile_used[i] then
+        TilePropsImage.Canvas.Rectangle(tile_x * 16 + 1, tile_y * 16 + 1, tile_x * 16 + 15, tile_y * 16 + 15);
+    end;
+    exit;
+  end;
+  // Mark hurting tiles
+  if cbxMode.ItemIndex = 1 then
   begin
     for i := 0 to Tileset.num_tiles - 1 do
     begin
@@ -351,6 +386,7 @@ begin
     end;
     exit;
   end;
+  // Mark tiles within selected range
   min := strtoint(TilePropsGrid.cells[1, cur_row]);
   max := strtoint(TilePropsGrid.cells[2, cur_row]);
   for i := min to max do

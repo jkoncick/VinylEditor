@@ -218,7 +218,7 @@ begin
       map_tile := Addr(data[x + cnv_left, y + cnv_top]);
       dest_rect := Rect(cnv_off_left + x*32, cnv_off_top + y*32, cnv_off_left + x*32+32, cnv_off_top + y*32+32);
       // Background layer
-      if o_bglr then
+      if o_bglr and (map_tile.layers[0] <> tile_no_change) then
       begin
         tile_index := map_tile.layers[0];
         tile_x := tile_index mod tileset_cols;

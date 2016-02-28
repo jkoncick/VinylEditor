@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls;
+  Dialogs, ExtCtrls, Math;
 
 type
   TBlockPresetDialog = class(TForm)
@@ -16,12 +16,12 @@ type
     procedure BlockPresetImageMouseDown(Sender: TObject;
       Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
   private
-    preset_group, preset_layer: integer;
+    preset_group: integer;
     update_pending: boolean;
     render_letters: boolean;
 
   public
-    procedure update_presets(group, layer: integer);
+    procedure update_presets(group: integer);
     procedure select_preset(preset_index: integer);
     procedure draw_all;
     procedure draw_block_preset(row, col: integer);
@@ -87,7 +87,7 @@ begin
     // Remove preset
     if Application.MessageBox('Do you want to delete this preset?', 'Delete preset', MB_YESNO or MB_ICONQUESTION) = IDYES then
     begin
-      Tileset.remove_preset(preset_group, preset_layer, row * num_key_cols + col);
+      Tileset.remove_preset(preset_group, row * num_key_cols + col);
       draw_all;
     end;
   end
@@ -102,11 +102,10 @@ begin
   end;
 end;
 
-procedure TBlockPresetDialog.update_presets(group, layer: integer);
+procedure TBlockPresetDialog.update_presets(group: integer);
 begin
-  Caption := 'Preset selection - ' + block_preset_ini_sections[group, layer];
+  Caption := 'Preset selection - ' + block_preset_ini_sections[group];
   preset_group := group;
-  preset_layer := layer;
   update_pending := not Visible;
   if Visible then
     draw_all;
@@ -116,7 +115,7 @@ procedure TBlockPresetDialog.select_preset(preset_index: integer);
 begin
   if settings.HidePresetWindow then
     Hide;
-  MainWindow.cur_selected_preset[preset_group, preset_layer] := preset_index;
+  MainWindow.cur_selected_preset[preset_group] := preset_index;
   MainWindow.update_editing_mode;
 end;
 
@@ -134,14 +133,13 @@ var
   preset: ^TBlockPreset;
   scale: integer;
   size_x, size_y: integer;
-  src_x, src_y: integer;
   off_x, off_y: integer;
   min_x, min_y: integer;
   src_rect, dest_rect: TRect;
   x, y: integer;
   tile_x, tile_y: integer;
 begin
-  preset := Addr(tileset.block_presets[preset_group, preset_layer, row * num_key_cols + col]);
+  preset := Addr(tileset.block_presets[preset_group, row * num_key_cols + col]);
   BlockPresetImage.Canvas.Pen.Color := clBtnFace;
   BlockPresetImage.Canvas.Brush.Color := clBtnFace;
   BlockPresetImage.Canvas.Rectangle(col*128, row*128, col*128+128, row*128+128);
@@ -153,13 +151,11 @@ begin
   min_y := row * 128;
   size_x := preset.width * scale;
   size_y := preset.height * scale;
-  off_x := ((128 - size_x) div 2) + min_x;
-  off_y := ((128 - size_y) div 2) + min_y;
+  off_x := Max(((128 - size_x) div 2) + min_x, min_x);
+  off_y := Max(((128 - size_y) div 2) + min_y, min_y);
   for x := 0 to preset.width - 1 do
     for y := 0 to preset.height - 1 do
     begin
-      if preset.tiles[x,y] = 255 then
-        continue;
       tile_x := preset.tiles[x,y] mod tileset_cols;
       tile_y := preset.tiles[x,y] div tileset_cols;
       src_rect := Rect(tile_x*16, tile_y*16, tile_x*16+16, tile_y*16+16);
