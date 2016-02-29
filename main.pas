@@ -198,6 +198,8 @@ type
     seMapFinishPixelY: TSpinEdit;
     lbMapFinishPixelX: TLabel;
     lbMapFinishPixelY: TLabel;
+    cbxTileMode: TComboBox;
+    snTilesetOffset: TSpinButton;
     // Main form events
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -265,6 +267,9 @@ type
     procedure BlockImageMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure EditingModeChange(Sender: TObject);
+    procedure snTilesetOffsetUpClick(Sender: TObject);
+    procedure snTilesetOffsetDownClick(Sender: TObject);
+    procedure cbxTileModeChange(Sender: TObject);
     procedure tbBrushSizeChange(Sender: TObject);
     procedure btnSavePresetClick(Sender: TObject);
     procedure sbObjectClick(Sender: TObject);
@@ -579,13 +584,11 @@ begin
     end;
     107: // Num+
     begin
-      cur_tileset_offset := 1;
-      draw_block_image;
+      snTilesetOffsetDownClick(nil);
     end;
     109: // Num-
     begin
-      cur_tileset_offset := 0;
-      draw_block_image;
+      snTilesetOffsetUpClick(nil);
     end;
   end;
   // Shift + arrows = same as Num keys
@@ -723,6 +726,11 @@ begin
     else
       MapScrollH.Position := MapScrollH.Position - 2;
     Handled := true;
+  end else
+  if EditorPages.ActivePageIndex = 0 then
+  begin
+    snTilesetOffsetUpClick(nil);
+    Handled := true;
   end;
 end;
 
@@ -736,6 +744,11 @@ begin
       MapScrollV.Position := MapScrollV.Position + 2
     else
       MapScrollH.Position := MapScrollH.Position + 2;
+    Handled := true;
+  end else
+  if EditorPages.ActivePageIndex = 0 then
+  begin
+    snTilesetOffsetDownClick(nil);
     Handled := true;
   end;
 end;
@@ -1050,8 +1063,6 @@ var
   canvas_x, canvas_y: integer;
   map_x, map_y: integer;
   map_pixel_x, map_pixel_y: integer;
-  i, message_index: integer;
-  line, tmp_hint: string;
   Button: TMouseButton;
 begin
   cur_shift_state := Shift;
@@ -1069,27 +1080,6 @@ begin
   mouse_already_clicked := false;
   // Write coordinates on status bar
   StatusBar.Panels[0].Text := 'x: '+inttostr(map_x)+' y: '+inttostr(map_y);
-  // If mouse moved over Wizard with a message, show "hint" with with the message
-  {if mode(mObject) and (Map.data[map_x, map_y].objects = ivMessage) then
-  begin
-    Application.CancelHint;
-    tmp_hint := '';
-    message_index := Map.data[map_x, map_y].moreinfo;
-    if message_index <> 255 then
-    begin
-      message_data := Addr(Map.leveldata.message_data[message_index]);
-      for i := 0 to Length(message_data.Lines) - 1 do
-      begin
-        SetString(line, message_data.Lines[i], Min(StrLen(message_data.Lines[i]), Length(message_data.Lines[i])));
-        if line <> '' then
-          tmp_hint := tmp_hint + line + #13#10;
-      end;
-      MapCanvas.Hint := tmp_hint;
-      MapCanvas.ShowHint := true;
-    end else
-      MapCanvas.ShowHint := false;
-  end else
-    MapCanvas.ShowHint := false;}
   // Scroll map while holding right button
   if (ssRight in shift) and mode(mRightBtnScroll) then
   begin
@@ -1235,13 +1225,15 @@ begin
     begin
       if ssShift in Shift then
         Map.smooth_edges(map_x, map_y, 0)
-      else
+      else if cbxTileMode.ItemIndex <> 0 then
+        Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, 500 + cbxTileMode.ItemIndex)
+      else  
         Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, cur_tile_index);
     end else
     // Paint pattern
     if mode(mPatternMode) then
     begin
-      Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, tile_pattern);
+      Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, tilemode_pattern);
     end else
     // Place block
     if mode(mBlockMode) then
@@ -1321,12 +1313,12 @@ begin
     // Erase tiles
     if mode(mTileMode) or mode(mPatternMode) then
     begin
-      Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, tile_erase);
+      Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, tilemode_erase);
     end else
     // Erase items
     if mode(mItem) then
     begin
-      Map.paint_tile_rect(map_x, map_y, 1, 1, tile_erase);
+      Map.paint_tile_rect(map_x, map_y, 1, 1, tilemode_erase);
     end else
     // Remove object
     if mode(mObject) then
@@ -1362,7 +1354,7 @@ begin
     if rbTileMode.Checked then
       Map.fill_area_start(mouse_old_x, mouse_old_y, cur_tile_index)
     else if rbPatternMode.Checked then
-      Map.fill_area_start(mouse_old_x, mouse_old_y, tile_pattern);
+      Map.fill_area_start(mouse_old_x, mouse_old_y, tilemode_pattern);
     Map.compute_statistics;
     render_minimap;
     render_map;
@@ -1375,7 +1367,6 @@ procedure TMainWindow.MapCanvasMouseUp(Sender: TObject;
 var
   min_x, max_x, min_y, max_y: word;
   size_x, size_y: word;
-  i: integer;
   door: ^TDoorEntry;
   index: integer;
 begin
@@ -1398,13 +1389,18 @@ begin
     begin
       // Erase tiles
       if (mode(mTileMode) or mode(mPatternMode)) and (Button = mbRight) then
-        Map.paint_tile_rect(min_x, min_y, size_x, size_y, tile_erase)
+        Map.paint_tile_rect(min_x, min_y, size_x, size_y, tilemode_erase)
       // Paint tiles
       else if mode(mTileMode) and (ssCtrl in Shift) then
-        Map.paint_tile_rect(min_x, min_y, size_x, size_y, cur_tile_index)
+      begin
+        if cbxTileMode.ItemIndex <> 0 then
+          Map.paint_tile_rect(min_x, min_y, size_x, size_y, 500 + cbxTileMode.ItemIndex)
+        else
+          Map.paint_tile_rect(min_x, min_y, size_x, size_y, cur_tile_index)
+      end
       // Paint pattern
       else if mode(mPatternMode) and (ssCtrl in Shift) then
-        Map.paint_tile_rect(min_x, min_y, size_x, size_y, tile_pattern)
+        Map.paint_tile_rect(min_x, min_y, size_x, size_y, tilemode_pattern)
       // Select pattern
       else if mode(mPatternMode) and (ssShift in Shift) then
       begin
@@ -1541,6 +1537,24 @@ begin
   if MainWindow.Visible then
     EditorPages.SetFocus;
   btnSavePreset.Visible := False;
+end;
+
+procedure TMainWindow.snTilesetOffsetUpClick(Sender: TObject);
+begin
+  cur_tileset_offset := 0;
+  draw_block_image;
+end;
+
+procedure TMainWindow.snTilesetOffsetDownClick(Sender: TObject);
+begin
+  cur_tileset_offset := 1;
+  draw_block_image;
+end;
+
+procedure TMainWindow.cbxTileModeChange(Sender: TObject);
+begin
+  sbMarkTiles.Down := (cbxTileMode.ItemIndex = 1) or (cbxTileMode.ItemIndex = 2) or (cbxTileMode.ItemIndex = 3);
+  RenderSettingChange(nil);
 end;
 
 procedure TMainWindow.tbBrushSizeChange(Sender: TObject);
@@ -2122,7 +2136,7 @@ begin
     begin
       switch := Addr(Map.leveldata.switches[i]);
       str := 'Switch ' + inttostr(i);
-      if (switch.switchType >= 0) and (switch.switchType < Length(switch_type_letter)) then
+      if (switch.switchType < Length(switch_type_letter)) then
         str := str + ' [' + switch_type_letter[switch.switchType] + ']';
       str := str + ' (' + inttostr(switch.posX) + ' , ' + inttostr(switch.posY) + ')';
       tmp_strings.Add(str);
@@ -2142,7 +2156,7 @@ begin
     begin
       lock := Addr(Map.leveldata.locks[i]);
       str := 'Lock ' + inttostr(i);
-      if (lock.messageNumber >= 0) and (lock.messageNumber < Length(switch_type_letter)) then
+      if (lock.messageNumber < Length(switch_type_letter)) then
         str := str + ' [' + lock_type_letter[lock.messageNumber] + ']';
       str := str + ' (' + inttostr(lock.posX) + ' , ' + inttostr(lock.posY) + ')';
       tmp_strings.Add(str);

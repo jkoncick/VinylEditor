@@ -7,8 +7,7 @@ uses Graphics, Menus;
 // Tileset constants
 const tileset_cols = 20;
 const cnt_tileset_tiles = 500;
-const cnt_edge_tiles = 9;
-const cnt_item_tiles = 18;
+const cnt_defined_tiles = 32;
 const cnt_block_preset_keys = 40; // 0-9, A-Z...
 const max_block_presets = cnt_block_preset_keys;
 const max_block_preset_size = 18;
@@ -65,9 +64,9 @@ type
     tile_layer: array[0..cnt_tileset_tiles] of Byte;
 
     // Tileset configuration
-    // First index = pattern/block presets, Second index = background/foreground presets
-    edge_tiles: array[0..cnt_edge_tiles-1] of byte;
-    item_tiles: array[0..cnt_item_tiles-1] of byte;
+    base_tiles: array[0..cnt_defined_tiles-1] of word;
+    nonshadow_tiles: array[0..cnt_defined_tiles-1] of word;
+    shadow_tiles: array[0..cnt_defined_tiles-1] of word;
     block_presets: array[0..1, 0..max_block_presets-1] of TBlockPreset;
 
   public
@@ -154,8 +153,9 @@ var
   width, height: integer;
 begin
   // Reset all configuration first
-  FillChar(edge_tiles, sizeof(edge_tiles), 0);
-  FillChar(item_tiles, sizeof(item_tiles), 0);
+  FillChar(base_tiles, sizeof(base_tiles), 255);
+  FillChar(nonshadow_tiles, sizeof(nonshadow_tiles), 255);
+  FillChar(shadow_tiles, sizeof(shadow_tiles), 255);
   FillChar(block_presets, sizeof(block_presets), 0);
   // Try to open configuration ini file
   filename := current_dir+'/tilesets/'+Archive.tileset_info[current_tileset].name+'.ini';
@@ -168,24 +168,18 @@ begin
   decoder2 := TStringList.Create;
   decoder.Delimiter := ';';
   decoder2.Delimiter := '.';
-  // Load edge tiles
-  decoder2.DelimitedText := ini.ReadString('Tiles', 'Window_Edge', '');
-  for i := 0 to cnt_edge_tiles - 1 do
-  begin
-    if i < decoder2.Count then
-      edge_tiles[i] := strtoint(decoder2[i])
-    else
-      edge_tiles[i] := 0;
-  end;
-  // Load object tiles
-  decoder2.DelimitedText := ini.ReadString('Tiles', 'Items', '');
-  for i := 0 to cnt_item_tiles - 1 do
-  begin
-    if i < decoder2.Count then
-      item_tiles[i] := strtoint(decoder2[i])
-    else
-      item_tiles[i] := 0;
-  end;
+  // Load basic tiles
+  decoder2.DelimitedText := ini.ReadString('Tiles', 'Base_Tiles', '');
+  for i := 0 to Min(cnt_defined_tiles, decoder2.Count) - 1 do
+    base_tiles[i] := strtoint(decoder2[i]);
+  // Load noshadow tiles
+  decoder2.DelimitedText := ini.ReadString('Tiles', 'Nonshadow_Tiles', '');
+  for i := 0 to Min(cnt_defined_tiles, decoder2.Count) - 1 do
+    nonshadow_tiles[i] := strtoint(decoder2[i]);
+  // Load shadow tiles
+  decoder2.DelimitedText := ini.ReadString('Tiles', 'Shadow_Tiles', '');
+  for i := 0 to Min(cnt_defined_tiles, decoder2.Count) - 1 do
+    shadow_tiles[i] := strtoint(decoder2[i]);
   // Load block presets
   for preset_type := 0 to 1 do
   begin

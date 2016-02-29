@@ -1,8 +1,8 @@
 object MainWindow: TMainWindow
-  Left = 190
-  Top = 111
+  Left = 189
+  Top = 33
   Width = 950
-  Height = 650
+  Height = 676
   HorzScrollBar.Visible = False
   VertScrollBar.Visible = False
   Caption = 'Vinyl Goddess from Mars Level Editor'
@@ -72,7 +72,7 @@ object MainWindow: TMainWindow
   end
   object StatusBar: TStatusBar
     Left = 0
-    Top = 585
+    Top = 603
     Width = 942
     Height = 19
     Panels = <
@@ -108,7 +108,7 @@ object MainWindow: TMainWindow
     Left = 512
     Top = 0
     Width = 280
-    Height = 585
+    Height = 601
     TabOrder = 3
     object MiniMapFrame: TBevel
       Left = 6
@@ -224,9 +224,9 @@ object MainWindow: TMainWindow
     end
     object EditorPages: TPageControl
       Left = 1
-      Top = 184
+      Top = 176
       Width = 278
-      Height = 400
+      Height = 424
       ActivePage = PageTiles
       Align = alBottom
       TabOrder = 0
@@ -237,7 +237,7 @@ object MainWindow: TMainWindow
           Left = 0
           Top = 0
           Width = 270
-          Height = 372
+          Height = 396
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 0
@@ -298,47 +298,47 @@ object MainWindow: TMainWindow
             Left = 140
             Top = 272
             Width = 125
-            Height = 81
+            Height = 113
             BevelOuter = bvNone
             TabOrder = 4
             object lbBrushWidth: TLabel
               Left = 0
-              Top = 24
+              Top = 56
               Width = 11
               Height = 13
               Caption = 'W'
             end
             object lbBrushHeight: TLabel
               Left = 0
-              Top = 56
+              Top = 88
               Width = 8
               Height = 13
               Caption = 'H'
             end
             object lbBrushWidthVal: TLabel
               Left = 112
-              Top = 24
+              Top = 56
               Width = 6
               Height = 13
               Caption = '1'
             end
             object lbBrushHeightVal: TLabel
               Left = 112
-              Top = 56
+              Top = 88
               Width = 6
               Height = 13
               Caption = '1'
             end
             object lbBrushSize: TLabel
               Left = 0
-              Top = 0
+              Top = 32
               Width = 51
               Height = 13
               Caption = 'Brush size:'
             end
             object tbBrushWidth: TTrackBar
               Left = 11
-              Top = 19
+              Top = 51
               Width = 100
               Height = 30
               Max = 8
@@ -351,7 +351,7 @@ object MainWindow: TMainWindow
             end
             object tbBrushHeight: TTrackBar
               Left = 11
-              Top = 51
+              Top = 83
               Width = 100
               Height = 30
               Max = 8
@@ -362,16 +362,64 @@ object MainWindow: TMainWindow
               ThumbLength = 16
               OnChange = tbBrushSizeChange
             end
+            object cbxTileMode: TComboBox
+              Left = 0
+              Top = 0
+              Width = 121
+              Height = 21
+              Style = csDropDownList
+              ItemHeight = 13
+              ItemIndex = 0
+              TabOrder = 2
+              Text = 'Paint tiles (normal)'
+              OnChange = cbxTileModeChange
+              Items.Strings = (
+                'Paint tiles (normal)'
+                'Hidden passage'
+                'Hid. pas. boundary'
+                'Impassable'
+                'Shadow tiles'
+                'Nonshadow tiles')
+            end
           end
           object btnSavePreset: TButton
-            Left = 140
-            Top = 356
+            Left = 8
+            Top = 364
             Width = 121
             Height = 21
             Caption = 'Save pattern as preset'
             TabOrder = 5
             Visible = False
             OnClick = btnSavePresetClick
+          end
+          object snTilesetOffset: TSpinButton
+            Left = 112
+            Top = 272
+            Width = 20
+            Height = 33
+            DownGlyph.Data = {
+              0E010000424D0E01000000000000360000002800000009000000060000000100
+              200000000000D800000000000000000000000000000000000000008080000080
+              8000008080000080800000808000008080000080800000808000008080000080
+              8000008080000080800000808000000000000080800000808000008080000080
+              8000008080000080800000808000000000000000000000000000008080000080
+              8000008080000080800000808000000000000000000000000000000000000000
+              0000008080000080800000808000000000000000000000000000000000000000
+              0000000000000000000000808000008080000080800000808000008080000080
+              800000808000008080000080800000808000}
+            TabOrder = 6
+            UpGlyph.Data = {
+              0E010000424D0E01000000000000360000002800000009000000060000000100
+              200000000000D800000000000000000000000000000000000000008080000080
+              8000008080000080800000808000008080000080800000808000008080000080
+              8000000000000000000000000000000000000000000000000000000000000080
+              8000008080000080800000000000000000000000000000000000000000000080
+              8000008080000080800000808000008080000000000000000000000000000080
+              8000008080000080800000808000008080000080800000808000000000000080
+              8000008080000080800000808000008080000080800000808000008080000080
+              800000808000008080000080800000808000}
+            OnDownClick = snTilesetOffsetDownClick
+            OnUpClick = snTilesetOffsetUpClick
           end
         end
       end
@@ -410,7 +458,7 @@ object MainWindow: TMainWindow
           Left = 0
           Top = 0
           Width = 113
-          Height = 372
+          Height = 396
           Align = alLeft
           ItemHeight = 13
           TabOrder = 0

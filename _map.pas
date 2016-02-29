@@ -8,9 +8,14 @@ const max_map_width = 264;
 const max_map_height = 136;
 const max_undo_steps = 65535;
 
-const tile_erase = 511;
-const tile_pattern = 510;
 const tile_no_change = 500;
+const tilemode_hidden_passage = 501;
+const tilemode_passage_boundary = 502;
+const tilemode_impassable = 503;
+const tilemode_shadow = 504;
+const tilemode_noshadow = 505;
+const tilemode_pattern = 510;
+const tilemode_erase = 511;
 
 // ============================================================================
 // Object types and constants
@@ -356,17 +361,59 @@ end;
 procedure TMap.paint_tile(x,y: integer; tile_index: word);
 var
   new_tile: TMapTile;
+  base_tile_index: integer;
+  ix: word;
+  i: integer;
 begin
   new_tile := map_data[x,y];
-  // Replace reserved value by a tile from current pattern
-  if tile_index = tile_pattern then
+  // Get base tile index
+  base_tile_index := -1;
+  if (tile_index = tilemode_hidden_passage) or (tile_index = tilemode_passage_boundary) or (tile_index = tilemode_impassable) then
   begin
-    if (cur_pattern.width = 0) or (cur_pattern.height = 0) then
-      exit;
-    tile_index := cur_pattern.tiles[x mod cur_pattern.width, y mod cur_pattern.height];
+    ix := get_tile_index_prio(x, y);
+    if (ix >= level_data.tileFirstFront) and (ix < level_data.tileFirstBoundary) then
+      base_tile_index := ix - level_data.tileFirstFront
+    else if (ix >= level_data.tileFirstBoundary) and (ix <= level_data.tileLastBoundary) then
+      base_tile_index := ix - level_data.tileFirstBoundary
+    else begin
+      for i := 0 to cnt_defined_tiles - 1 do
+        if ix = Tileset.base_tiles[i] then
+          begin base_tile_index := i; break; end;
+      if base_tile_index = -1 then
+        exit;
+    end;
+  end;
+  case tile_index of
+    tilemode_hidden_passage:
+      tile_index := level_data.tileFirstFront + base_tile_index;
+    tilemode_passage_boundary:
+      tile_index := level_data.tileFirstBoundary + base_tile_index;
+    tilemode_impassable:
+      tile_index := Tileset.base_tiles[base_tile_index];
+    tilemode_shadow:
+    begin
+      tile_index := tile_no_change;
+      for i := 0 to cnt_defined_tiles - 1 do
+        if map_data[x,y].layers[0] = Tileset.nonshadow_tiles[i] then
+          begin tile_index := Tileset.shadow_tiles[i]; break; end;
+    end;
+    tilemode_noshadow:
+    begin
+      tile_index := tile_no_change;
+      for i := 0 to cnt_defined_tiles - 1 do
+        if map_data[x,y].layers[0] = Tileset.shadow_tiles[i] then
+          begin tile_index := Tileset.nonshadow_tiles[i]; break; end;
+    end;
+    tilemode_pattern:
+    begin
+      // Replace reserved value by a tile from current pattern
+      if (cur_pattern.width = 0) or (cur_pattern.height = 0) then
+        exit;
+      tile_index := cur_pattern.tiles[x mod cur_pattern.width, y mod cur_pattern.height];
+    end;
   end;
   // Delete tile in foreground layer
-  if tile_index = tile_erase then
+  if tile_index = tilemode_erase then
   begin
     new_tile.layers[1] := 0
   end else
@@ -637,7 +684,7 @@ procedure TMap.put_edge_tile(var xpos, ypos: integer; moveoff_x, moveoff_y, edge
 var
   tile_index: byte;
 begin
-  tile_index := Tileset.edge_tiles[edge_tile];
+  tile_index := Tileset.shadow_tiles[edge_tile];
   // We cannot place the edge tile immediately physically into map,
   // because it would interfere with checks for tiles around the following tile.
   // Instead, we exploit undo feature for this purpose: we store all changes
