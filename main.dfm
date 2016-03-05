@@ -1,6 +1,6 @@
 object MainWindow: TMainWindow
-  Left = 189
-  Top = 33
+  Left = 196
+  Top = 12
   Width = 950
   Height = 676
   HorzScrollBar.Visible = False
@@ -257,12 +257,13 @@ object MainWindow: TMainWindow
             OnMouseDown = BlockImageMouseDown
           end
           object cbAllLayers: TCheckBox
-            Left = 24
-            Top = 342
-            Width = 97
+            Left = 136
+            Top = 320
+            Width = 105
             Height = 17
             Caption = 'Copy both layers'
             TabOrder = 3
+            Visible = False
             OnClick = EditingModeChange
           end
           object rbTileMode: TRadioButton
@@ -294,51 +295,51 @@ object MainWindow: TMainWindow
             TabOrder = 1
             OnClick = EditingModeChange
           end
-          object PaintMethodPanel: TPanel
+          object pnBrushSize: TPanel
             Left = 140
             Top = 272
             Width = 125
-            Height = 113
+            Height = 81
             BevelOuter = bvNone
             TabOrder = 4
             object lbBrushWidth: TLabel
               Left = 0
-              Top = 56
+              Top = 24
               Width = 11
               Height = 13
               Caption = 'W'
             end
             object lbBrushHeight: TLabel
               Left = 0
-              Top = 88
+              Top = 56
               Width = 8
               Height = 13
               Caption = 'H'
             end
             object lbBrushWidthVal: TLabel
               Left = 112
-              Top = 56
+              Top = 24
               Width = 6
               Height = 13
               Caption = '1'
             end
             object lbBrushHeightVal: TLabel
               Left = 112
-              Top = 88
+              Top = 56
               Width = 6
               Height = 13
               Caption = '1'
             end
             object lbBrushSize: TLabel
               Left = 0
-              Top = 32
+              Top = 0
               Width = 51
               Height = 13
               Caption = 'Brush size:'
             end
             object tbBrushWidth: TTrackBar
               Left = 11
-              Top = 51
+              Top = 19
               Width = 100
               Height = 30
               Max = 8
@@ -351,7 +352,7 @@ object MainWindow: TMainWindow
             end
             object tbBrushHeight: TTrackBar
               Left = 11
-              Top = 83
+              Top = 51
               Width = 100
               Height = 30
               Max = 8
@@ -362,29 +363,10 @@ object MainWindow: TMainWindow
               ThumbLength = 16
               OnChange = tbBrushSizeChange
             end
-            object cbxTileMode: TComboBox
-              Left = 0
-              Top = 0
-              Width = 121
-              Height = 21
-              Style = csDropDownList
-              ItemHeight = 13
-              ItemIndex = 0
-              TabOrder = 2
-              Text = 'Paint tiles (normal)'
-              OnChange = cbxTileModeChange
-              Items.Strings = (
-                'Paint tiles (normal)'
-                'Hidden passage'
-                'Hid. pas. boundary'
-                'Impassable'
-                'Shadow tiles'
-                'Nonshadow tiles')
-            end
           end
           object btnSavePreset: TButton
-            Left = 8
-            Top = 364
+            Left = 136
+            Top = 354
             Width = 121
             Height = 21
             Caption = 'Save pattern as preset'
@@ -420,6 +402,32 @@ object MainWindow: TMainWindow
               800000808000008080000080800000808000}
             OnDownClick = snTilesetOffsetDownClick
             OnUpClick = snTilesetOffsetUpClick
+          end
+          object rbChangeTileType: TRadioButton
+            Left = 8
+            Top = 344
+            Width = 129
+            Height = 17
+            Caption = 'Change tile type'
+            TabOrder = 7
+            OnClick = EditingModeChange
+          end
+          object cbxChangeTileType: TComboBox
+            Left = 136
+            Top = 354
+            Width = 125
+            Height = 21
+            Style = csDropDownList
+            ItemHeight = 13
+            ItemIndex = 0
+            TabOrder = 8
+            Text = 'Shadow / Bright tiles'
+            Visible = False
+            OnChange = cbxChangeTileTypeChange
+            Items.Strings = (
+              'Shadow / Bright tiles'
+              'Hidden passage'
+              'Hid. pas. boundary')
           end
         end
       end
@@ -1017,7 +1025,7 @@ object MainWindow: TMainWindow
           end
           object imgTransblock: TImage
             Left = 128
-            Top = 48
+            Top = 40
             Width = 128
             Height = 128
           end
@@ -1025,11 +1033,29 @@ object MainWindow: TMainWindow
             Left = 0
             Top = 0
             Width = 113
-            Height = 177
+            Height = 209
             ItemHeight = 13
             TabOrder = 0
             OnClick = lstTransblockListClick
             OnDblClick = lstTransblockListDblClick
+          end
+          object btnTransblockRemove: TButton
+            Left = 192
+            Top = 192
+            Width = 73
+            Height = 20
+            Caption = 'Remove last'
+            Enabled = False
+            TabOrder = 1
+          end
+          object btnTransblockAdd: TButton
+            Left = 120
+            Top = 192
+            Width = 70
+            Height = 20
+            Caption = 'Add new'
+            Enabled = False
+            TabOrder = 2
           end
         end
         object btnLockAdd: TButton

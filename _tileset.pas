@@ -31,10 +31,14 @@ const etLeft = 0;
 const etTop = 1;
 const etRight = 2;
 const etBottom = 3;
-const etTopLeft = 4;
-const etTopRight = 5;
-const etBottomLeft = 6;
-const etBottomRight = 7;
+const etTopLeftOut = 4;
+const etTopRightOut = 5;
+const etBottomLeftOut = 6;
+const etBottomRightOut = 7;
+const etTopLeftIn = 8;
+const etTopRightIn = 9;
+const etBottomLeftIn = 10;
+const etBottomRightIn = 11;
 
 // Tileset type definitions
 type

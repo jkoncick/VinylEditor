@@ -474,7 +474,7 @@ end;
 procedure TMap.rotate_pattern(direction: TDirection);
 var
   x, y: integer;
-  tmp_tile: byte;
+  tmp_tile: word;
 begin
   case direction of
     drLeft:
@@ -673,28 +673,38 @@ end;
 
 
 function TMap.check_edge_tile(x, y: integer; exact: boolean): boolean;
+var
+  tile: word;
 begin
-  if exact then
-    result := map.map_data[x, y].layers[0] = 0
-  else
-    result := map.map_data[x, y].layers[0] <> 255;
+  tile := map.map_data[x, y].layers[0];
+  result := not ((tile < level_data.solidTiles) or ((tile >= level_data.tileFirstFront) and (tile <= level_data.tileLastFront)));
 end;
 
 procedure TMap.put_edge_tile(var xpos, ypos: integer; moveoff_x, moveoff_y, edge_tile: integer);
 var
-  tile_index: byte;
+  tile_index: word;
+  i: integer;
 begin
-  tile_index := Tileset.shadow_tiles[edge_tile];
   // We cannot place the edge tile immediately physically into map,
   // because it would interfere with checks for tiles around the following tile.
   // Instead, we exploit undo feature for this purpose: we store all changes
   // into history and in the end we apply the changes (like doing redo)
-  undo_history[undo_max].x := xpos;
-  undo_history[undo_max].y := ypos;
-  undo_history[undo_max].data := map_data[xpos, ypos];
-  undo_history[undo_max].data.layers[0] := tile_index;
-  undo_history[undo_max].is_first := false;
-  undo_max := (undo_max + 1) and max_undo_steps;
+  if (edge_tile = etLeft) or (edge_tile = etTop) or (edge_tile = etTopLeftIn) or (edge_tile = etTopRightIn) or (edge_tile = etBottomLeftIn) or (edge_tile = etBottomRightOut) then
+  begin
+    tile_index := tile_no_change;
+    for i := 0 to cnt_defined_tiles - 1 do
+      if map_data[xpos,ypos].layers[0] = Tileset.nonshadow_tiles[i] then
+        begin tile_index := Tileset.shadow_tiles[i]; break; end;
+    if tile_index <> tile_no_change then
+    begin
+      undo_history[undo_max].x := xpos;
+      undo_history[undo_max].y := ypos;
+      undo_history[undo_max].data := map_data[xpos, ypos];
+      undo_history[undo_max].data.layers[0] := tile_index;
+      undo_history[undo_max].is_first := false;
+      undo_max := (undo_max + 1) and max_undo_steps;
+    end;
+  end;
   // Finally move to next position (anticlockwise direction)
   xpos := xpos + moveoff_x;
   ypos := ypos + moveoff_y;
@@ -727,35 +737,35 @@ begin
     // Transform current tile into edge tile and move to following tile
     case (sum and 15) of
        7: begin // down
-            put_edge_tile(x,y,1,0,etTop);
+            put_edge_tile(x,y,1,0,etBottom);
         end;
       11: begin // right
-            put_edge_tile(x,y,0,-1,etLeft);
+            put_edge_tile(x,y,0,-1,etRight);
         end;
       14: begin // up
-            put_edge_tile(x,y,-1,0,etBottom);
+            put_edge_tile(x,y,-1,0,etTop);
         end;
       13: begin // left
-            put_edge_tile(x,y,0,1,etRight);
+            put_edge_tile(x,y,0,1,etLeft);
         end;
        3: begin // down-right corner
-            put_edge_tile(x,y,0,-1,etTopLeft);
+            put_edge_tile(x,y,0,-1,etBottomRightIn);
         end;
       10: begin // up-right corner
-            put_edge_tile(x,y,-1,0,etBottomLeft);
+            put_edge_tile(x,y,-1,0,etTopRightIn);
         end;
       12: begin // up-left corner
-            put_edge_tile(x,y,0,1,etBottomRight);
+            put_edge_tile(x,y,0,1,etTopLeftIn);
         end;
        5: begin // down-left corner
-            put_edge_tile(x,y,1,0,etTopRight);
+            put_edge_tile(x,y,1,0,etBottomLeftIn);
         end;
       15: begin // inner curves
         case sum of
-          239: put_edge_tile(x,y,-1,0,etBottomRight); // down-right curve
-          191: put_edge_tile(x,y,0,1,etTopRight);  // up-right curve
-          127: put_edge_tile(x,y,1,0,etTopLeft);  // up-left curve
-          223: put_edge_tile(x,y,0,-1,etBottomLeft); // down-left curve
+          239: put_edge_tile(x,y,-1,0,etBottomRightOut); // down-right curve
+          191: put_edge_tile(x,y,0,1,etTopRightOut);  // up-right curve
+          127: put_edge_tile(x,y,1,0,etTopLeftOut);  // up-left curve
+          223: put_edge_tile(x,y,0,-1,etBottomLeftOut); // down-left curve
           else break; // Invalid combination - end
         end;
         end;
@@ -769,7 +779,7 @@ begin
       break;
     // Sometimes the algorithm may end up in infinite loop. This is to prevent it.
     inc(steps);
-    if steps > 1000 then
+    if steps > 4000 then
       break;
   end;
   undo_history[undo_pos].is_first := true;

@@ -23,8 +23,10 @@ const layer_marker_color: TColor = $C020C0;
 const lock_type_letter: array[0..3] of char = ('Y', 'R', 'G', 'B');
 const switch_type_letter: array[0..5] of char = ('U', 'A', 'U', 'T', 'R', 'O');
 
+const tile_mode_value: array[0..2,0..1] of word = ((tilemode_shadow, tilemode_noshadow), (tilemode_hidden_passage, tilemode_impassable), (tilemode_passage_boundary, tilemode_impassable));
+
 type
-  SelectedMode = (mTileMode, mPatternMode, mBlockMode, mPainting, mSelecting, mRightBtnScroll, mPixelCoords, mSingleTileThing, mTile, mObject, mDoor, mSwitch, mLock, mItem);
+  SelectedMode = (mTileMode, mPatternMode, mBlockMode, mChangeTileType, mPainting, mSelecting, mRightBtnScroll, mPixelCoords, mSingleTileThing, mTile, mObject, mDoor, mSwitch, mLock, mItem);
 
 type
   TMainWindow = class(TForm)
@@ -92,7 +94,7 @@ type
     rbPatternMode: TRadioButton;
     tbBrushWidth: TTrackBar;
     tbBrushHeight: TTrackBar;
-    PaintMethodPanel: TPanel;
+    pnBrushSize: TPanel;
     lbBrushWidth: TLabel;
     lbBrushHeight: TLabel;
     lbBrushWidthVal: TLabel;
@@ -198,8 +200,11 @@ type
     seMapFinishPixelY: TSpinEdit;
     lbMapFinishPixelX: TLabel;
     lbMapFinishPixelY: TLabel;
-    cbxTileMode: TComboBox;
+    cbxChangeTileType: TComboBox;
     snTilesetOffset: TSpinButton;
+    rbChangeTileType: TRadioButton;
+    btnTransblockRemove: TButton;
+    btnTransblockAdd: TButton;
     // Main form events
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -269,7 +274,7 @@ type
     procedure EditingModeChange(Sender: TObject);
     procedure snTilesetOffsetUpClick(Sender: TObject);
     procedure snTilesetOffsetDownClick(Sender: TObject);
-    procedure cbxTileModeChange(Sender: TObject);
+    procedure cbxChangeTileTypeChange(Sender: TObject);
     procedure tbBrushSizeChange(Sender: TObject);
     procedure btnSavePresetClick(Sender: TObject);
     procedure sbObjectClick(Sender: TObject);
@@ -1157,6 +1162,15 @@ begin
     exit;
   end;
 
+  // Change tile type mode
+  if mode(mChangeTileType) and (ord(Button) <= ord(mbRight)) then
+  begin
+    if ssShift in Shift then
+      Map.smooth_edges(map_x, map_y, 0)
+    else
+      Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, tile_mode_value[cbxChangeTileType.ItemIndex, ord(Button)]);
+  end else
+
   // Middle mouse button
   if Button = mbMiddle then
   begin
@@ -1223,11 +1237,6 @@ begin
     // Paint tile
     if mode(mTileMode) then
     begin
-      if ssShift in Shift then
-        Map.smooth_edges(map_x, map_y, 0)
-      else if cbxTileMode.ItemIndex <> 0 then
-        Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, 500 + cbxTileMode.ItemIndex)
-      else  
         Map.paint_tile_rect(map_x, map_y, tbBrushWidth.Position, tbBrushHeight.Position, cur_tile_index);
     end else
     // Paint pattern
@@ -1349,7 +1358,7 @@ end;
 procedure TMainWindow.MapCanvasDblClick(Sender: TObject);
 begin
   // Double click for filling area
-  if mode(mPainting) then
+  if mode(mPainting) and not mode(mChangeTileType) then
   begin
     if rbTileMode.Checked then
       Map.fill_area_start(mouse_old_x, mouse_old_y, cur_tile_index)
@@ -1387,16 +1396,18 @@ begin
     size_y := max_y - min_y + 1;
     if mode(mTile) then
     begin
+      // Use special tile mode
+      if mode(mChangeTileType) and (ord(Button) <= ord(mbRight)) then
+      begin
+        Map.paint_tile_rect(min_x, min_y, size_x, size_y, tile_mode_value[cbxChangeTileType.ItemIndex, ord(Button)]);
+      end else
       // Erase tiles
       if (mode(mTileMode) or mode(mPatternMode)) and (Button = mbRight) then
         Map.paint_tile_rect(min_x, min_y, size_x, size_y, tilemode_erase)
       // Paint tiles
       else if mode(mTileMode) and (ssCtrl in Shift) then
       begin
-        if cbxTileMode.ItemIndex <> 0 then
-          Map.paint_tile_rect(min_x, min_y, size_x, size_y, 500 + cbxTileMode.ItemIndex)
-        else
-          Map.paint_tile_rect(min_x, min_y, size_x, size_y, cur_tile_index)
+        Map.paint_tile_rect(min_x, min_y, size_x, size_y, cur_tile_index)
       end
       // Paint pattern
       else if mode(mPatternMode) and (ssCtrl in Shift) then
@@ -1533,6 +1544,14 @@ begin
     cur_preset_group := bpgPatternPreset
   else
     cur_preset_group := bpgBlockPreset;
+  snTilesetOffset.Visible := rbTileMode.Checked;
+  cbAllLayers.Visible := rbBlockMode.Checked;
+  pnBrushSize.Visible := not rbBlockMode.Checked;
+  if cbxChangeTileType.Visible and not rbChangeTileType.Checked then
+    cbxChangeTileTypeChange(nil);
+  cbxChangeTileType.Visible := rbChangeTileType.Checked;
+  if rbChangeTileType.Checked then
+    cbxChangeTileTypeChange(nil);
   update_editing_mode;
   if MainWindow.Visible then
     EditorPages.SetFocus;
@@ -1551,9 +1570,9 @@ begin
   draw_block_image;
 end;
 
-procedure TMainWindow.cbxTileModeChange(Sender: TObject);
+procedure TMainWindow.cbxChangeTileTypeChange(Sender: TObject);
 begin
-  sbMarkTiles.Down := (cbxTileMode.ItemIndex = 1) or (cbxTileMode.ItemIndex = 2) or (cbxTileMode.ItemIndex = 3);
+  sbMarkTiles.Down := (cbxChangeTileType.ItemIndex > 0) and mode(mChangeTileType);
   RenderSettingChange(nil);
 end;
 
@@ -2496,9 +2515,10 @@ begin
     mTileMode:        result := (EditorPages.TabIndex = 0) and (rbTileMode.Checked);
     mPatternMode:     result := (EditorPages.TabIndex = 0) and (rbPatternMode.Checked);
     mBlockMode:       result := (EditorPages.TabIndex = 0) and (rbBlockMode.Checked);
-    mPainting:        result := (mode(mTile) and (rbTileMode.Checked or rbPatternMode.Checked) and not selection_started) or mode(mItem);
+    mChangeTileType:  result := (EditorPages.TabIndex = 0) and (rbChangeTileType.Checked);
+    mPainting:        result := (mode(mTile) and (rbTileMode.Checked or rbPatternMode.Checked or rbChangeTileType.Checked) and not selection_started) or mode(mItem);
     mSelecting:       result := ((mode(mPatternMode) or mode(mBlockMode)) and (ssShift in cur_shift_state)) or
-                                ((mode(mTileMode) or (mode(mPatternMode))) and (ssCtrl in cur_shift_state)) or
+                                ((mode(mTileMode) or mode(mPatternMode) or mode(mChangeTileType)) and (ssCtrl in cur_shift_state)) or
                                 ((EditorPages.TabIndex = 2) and sbDoorEntrance.Down);
     mRightBtnScroll:  result := mode(mBlockMode) or (selection_started and (ssLeft in cur_shift_state)) or (mode(mObject) and mode(mSelecting));
     mPixelCoords:     result := mode(mObject) or (mode(mDoor) and sbDoorDestination.Down);
@@ -2681,6 +2701,7 @@ var
   border_x, border_y: integer;
   src_rect, dest_rect: TRect;
   str: String;
+  scale: integer;
 begin
   BlockImage.Canvas.Brush.Style := bsSolid;
   BlockImage.Canvas.Pen.Style := psSolid;
@@ -2712,15 +2733,16 @@ begin
   // Pattern mode - render pattern
   if mode(mPatternMode) then
   begin
-    border_x := (BlockImage.Width - Map.pattern.width * 32) div 2;
-    border_y := (BlockImage.Height - Map.pattern.height * 32) div 2;
+    scale := IfThen((Map.pattern.width > 9) or (Map.pattern.height > 9), 1, 2);
+    border_x := (BlockImage.Width - Map.pattern.width * 16 * scale) div 2;
+    border_y := (BlockImage.Height - Map.pattern.height * 16 * scale) div 2;
     for x:= 0 to Map.pattern.width-1 do
       for y := 0 to Map.pattern.height-1 do
       begin
         tile_x := Map.pattern.tiles[x,y] mod 20;
         tile_y := Map.pattern.tiles[x,y] div 20;
         src_rect := Rect(tile_x*16, tile_y*16, tile_x*16+16, tile_y*16+16);
-        dest_rect := Rect(x*32+border_x, y*32+border_y, x*32+32+border_x, y*32+32+border_y);
+        dest_rect := Rect(x*16*scale+border_x, y*16*scale+border_y, (x*16+16)*scale+border_x, (y*16+16)*scale+border_y);
         if Map.pattern.tiles[x,y] <> 255 then
           BlockImage.Canvas.CopyRect(dest_rect, Tileset.tileimage.Canvas, src_rect);
       end;
