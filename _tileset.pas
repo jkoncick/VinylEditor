@@ -69,7 +69,7 @@ type
 
     // Tileset configuration
     base_tiles: array[0..cnt_defined_tiles-1] of word;
-    nonshadow_tiles: array[0..cnt_defined_tiles-1] of word;
+    bright_tiles: array[0..cnt_defined_tiles-1] of word;
     shadow_tiles: array[0..cnt_defined_tiles-1] of word;
     block_presets: array[0..1, 0..max_block_presets-1] of TBlockPreset;
 
@@ -82,7 +82,7 @@ type
     procedure load_config;
     procedure save_config;
 
-    function add_preset(preset: TBlockPresetPtr; group: integer): integer;
+    procedure save_preset(preset: TBlockPresetPtr; group, preset_num: integer);
     procedure remove_preset(group, preset_num: integer);
 
     function block_key_to_index(key: word): integer;
@@ -158,7 +158,7 @@ var
 begin
   // Reset all configuration first
   FillChar(base_tiles, sizeof(base_tiles), 255);
-  FillChar(nonshadow_tiles, sizeof(nonshadow_tiles), 255);
+  FillChar(bright_tiles, sizeof(bright_tiles), 255);
   FillChar(shadow_tiles, sizeof(shadow_tiles), 255);
   FillChar(block_presets, sizeof(block_presets), 0);
   // Try to open configuration ini file
@@ -176,10 +176,10 @@ begin
   decoder2.DelimitedText := ini.ReadString('Tiles', 'Base_Tiles', '');
   for i := 0 to Min(cnt_defined_tiles, decoder2.Count) - 1 do
     base_tiles[i] := strtoint(decoder2[i]);
-  // Load noshadow tiles
-  decoder2.DelimitedText := ini.ReadString('Tiles', 'Nonshadow_Tiles', '');
+  // Load bright tiles
+  decoder2.DelimitedText := ini.ReadString('Tiles', 'Bright_Tiles', '');
   for i := 0 to Min(cnt_defined_tiles, decoder2.Count) - 1 do
-    nonshadow_tiles[i] := strtoint(decoder2[i]);
+    bright_tiles[i] := strtoint(decoder2[i]);
   // Load shadow tiles
   decoder2.DelimitedText := ini.ReadString('Tiles', 'Shadow_Tiles', '');
   for i := 0 to Min(cnt_defined_tiles, decoder2.Count) - 1 do
@@ -258,20 +258,10 @@ begin
   encoder2.Destroy;
 end;
 
-function TTileset.add_preset(preset: TBlockPresetPtr; group: integer): integer;
-var
-  i: integer;
+procedure TTileset.save_preset(preset: TBlockPresetPtr; group, preset_num: integer);
 begin
-  result := -1;
-  for i := 0 to max_block_presets - 1 do
-  begin
-    if block_presets[group, i].width <> 0 then
-      continue;
-    block_presets[group, i] := preset^;
-    config_changed := true;
-    result := i;
-    break;
-  end;
+  block_presets[group, preset_num] := preset^;
+  config_changed := true;
 end;
 
 procedure TTileset.remove_preset(group, preset_num: integer);

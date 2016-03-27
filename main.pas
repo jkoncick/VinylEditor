@@ -23,7 +23,7 @@ const layer_marker_color: TColor = $C020C0;
 const lock_type_letter: array[0..3] of char = ('Y', 'R', 'G', 'B');
 const switch_type_letter: array[0..5] of char = ('U', 'A', 'U', 'T', 'R', 'O');
 
-const tile_mode_value: array[0..2,0..1] of word = ((tilemode_shadow, tilemode_noshadow), (tilemode_hidden_passage, tilemode_impassable), (tilemode_passage_boundary, tilemode_impassable));
+const tile_mode_value: array[0..2,0..1] of word = ((tilemode_shadow, tilemode_bright), (tilemode_hidden_passage, tilemode_impassable), (tilemode_passage_boundary, tilemode_impassable));
 
 type
   SelectedMode = (mTileMode, mPatternMode, mBlockMode, mChangeTileType, mPainting, mSelecting, mRightBtnScroll, mPixelCoords, mSingleTileThing, mTile, mObject, mDoor, mSwitch, mLock, mItem);
@@ -1588,10 +1588,15 @@ var
   tmp_preset: TBlockPreset;
   x, y: integer;
 begin
-  preset_index := -1;
+  BlockPresetDialog.select_preset_to_save;
+  if BlockPresetDialog.ModalResult <> mrOk then
+    exit;
+  preset_index := BlockPresetDialog.preset_to_save;
+  if preset_index = -1 then
+    exit;
   if mode(mPatternMode) then
   begin
-    preset_index := Tileset.add_preset(Addr(Map.pattern), bpgPatternPreset);
+    Tileset.save_preset(Addr(Map.pattern), bpgPatternPreset, preset_index);
     cur_selected_preset[bpgPatternPreset] := preset_index;
   end else
   if mode(mBlockMode) then
@@ -1601,17 +1606,11 @@ begin
     for x := 0 to tmp_preset.width - 1 do
       for y := 0 to tmp_preset.height - 1 do
         tmp_preset.tiles[x, y] := IfThen(cur_block.data[x, y].layers[0] <> tile_no_change, cur_block.data[x, y].layers[0], cur_block.data[x, y].layers[1]);
-    preset_index := Tileset.add_preset(Addr(tmp_preset), bpgBlockPreset);
+    Tileset.save_preset(Addr(tmp_preset), bpgBlockPreset, preset_index);
     cur_selected_preset[bpgBlockPreset] := preset_index;
   end;
-  if preset_index = -1 then
-  begin
-    Application.MessageBox('Maximum number of presets was reached.', 'Error', MB_ICONERROR);
-  end else
-  begin
-    BlockPresetDialog.update_presets(cur_preset_group);
-    btnSavePreset.Visible := false;
-  end;
+  BlockPresetDialog.update_presets(cur_preset_group);
+  btnSavePreset.Visible := false;
 end;
 
 procedure TMainWindow.sbObjectClick(Sender: TObject);

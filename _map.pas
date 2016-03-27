@@ -13,7 +13,7 @@ const tilemode_hidden_passage = 501;
 const tilemode_passage_boundary = 502;
 const tilemode_impassable = 503;
 const tilemode_shadow = 504;
-const tilemode_noshadow = 505;
+const tilemode_bright = 505;
 const tilemode_pattern = 510;
 const tilemode_erase = 511;
 
@@ -394,15 +394,15 @@ begin
     begin
       tile_index := tile_no_change;
       for i := 0 to cnt_defined_tiles - 1 do
-        if map_data[x,y].layers[0] = Tileset.nonshadow_tiles[i] then
+        if map_data[x,y].layers[0] = Tileset.bright_tiles[i] then
           begin tile_index := Tileset.shadow_tiles[i]; break; end;
     end;
-    tilemode_noshadow:
+    tilemode_bright:
     begin
       tile_index := tile_no_change;
       for i := 0 to cnt_defined_tiles - 1 do
         if map_data[x,y].layers[0] = Tileset.shadow_tiles[i] then
-          begin tile_index := Tileset.nonshadow_tiles[i]; break; end;
+          begin tile_index := Tileset.bright_tiles[i]; break; end;
     end;
     tilemode_pattern:
     begin
@@ -693,7 +693,7 @@ begin
   begin
     tile_index := tile_no_change;
     for i := 0 to cnt_defined_tiles - 1 do
-      if map_data[xpos,ypos].layers[0] = Tileset.nonshadow_tiles[i] then
+      if map_data[xpos,ypos].layers[0] = Tileset.bright_tiles[i] then
         begin tile_index := Tileset.shadow_tiles[i]; break; end;
     if tile_index <> tile_no_change then
     begin

@@ -1,6 +1,6 @@
 object MainWindow: TMainWindow
-  Left = 196
-  Top = 12
+  Left = 191
+  Top = 71
   Width = 950
   Height = 676
   HorzScrollBar.Visible = False

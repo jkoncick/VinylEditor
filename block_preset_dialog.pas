@@ -11,6 +11,7 @@ type
     BlockPresetImage: TImage;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure FormHide(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure BlockPresetImageMouseDown(Sender: TObject;
@@ -19,12 +20,16 @@ type
     preset_group: integer;
     update_pending: boolean;
     render_letters: boolean;
+    selecting_to_save: boolean;
 
   public
+    preset_to_save: integer;
+
     procedure update_presets(group: integer);
     procedure select_preset(preset_index: integer);
     procedure draw_all;
     procedure draw_block_preset(row, col: integer);
+    procedure select_preset_to_save;
   end;
 
 var
@@ -51,11 +56,21 @@ begin
   end;
 end;
 
+procedure TBlockPresetDialog.FormHide(Sender: TObject);
+begin
+  selecting_to_save := false;
+end;
+
 procedure TBlockPresetDialog.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
   case key of
-    27: Close;
+    27: begin
+      if selecting_to_save then
+        ModalResult := mrCancel
+      else
+        Close;
+    end;
   end;
   // F1-F4: Change block preset group
   if (key >= 112) and (key <= 115) then
@@ -113,10 +128,17 @@ end;
 
 procedure TBlockPresetDialog.select_preset(preset_index: integer);
 begin
-  if settings.HidePresetWindow then
-    Hide;
-  MainWindow.cur_selected_preset[preset_group] := preset_index;
-  MainWindow.update_editing_mode;
+  if selecting_to_save then
+  begin
+    preset_to_save := preset_index;
+    ModalResult := mrOk;
+  end else
+  begin
+    if settings.HidePresetWindow then
+      Hide;
+    MainWindow.cur_selected_preset[preset_group] := preset_index;
+    MainWindow.update_editing_mode;
+  end;
 end;
 
 procedure TBlockPresetDialog.draw_all;
@@ -170,6 +192,13 @@ begin
   BlockPresetImage.Canvas.LineTo(col*128+128, row*128);
   BlockPresetImage.Canvas.MoveTo(col*128, row*128);
   BlockPresetImage.Canvas.LineTo(col*128, row*128+128);
+end;
+
+procedure TBlockPresetDialog.select_preset_to_save;
+begin
+  selecting_to_save := true;
+  preset_to_save := -1;
+  ShowModal;
 end;
 
 end.
