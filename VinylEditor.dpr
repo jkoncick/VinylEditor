@@ -10,7 +10,7 @@ uses
   _tileset in '_tileset.pas',
   _settings in '_settings.pas',
   _archive in '_archive.pas',
-  level_props_dialog in 'level_props_dialog.pas' {LevelPropertiesDialog},
+  sprite_props_dialog in 'sprite_props_dialog.pas' {SpritePropertiesDialog},
   _savegame in '_savegame.pas',
   tile_props_dialog in 'tile_props_dialog.pas' {TilePropertiesDialog},
   _objectinfo in '_objectinfo.pas';
@@ -29,7 +29,7 @@ begin
   Application.CreateForm(TMainWindow, MainWindow);
   Application.CreateForm(TSetDialog, SetDialog);
   Application.CreateForm(TBlockPresetDialog, BlockPresetDialog);
-  Application.CreateForm(TLevelPropertiesDialog, LevelPropertiesDialog);
+  Application.CreateForm(TSpritePropertiesDialog, SpritePropertiesDialog);
   Application.CreateForm(TTilePropertiesDialog, TilePropertiesDialog);
   // All GUI settings must be loaded after all dialogs are created.
   Settings.load_postcreate_editor_settings;

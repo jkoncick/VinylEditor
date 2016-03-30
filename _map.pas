@@ -100,7 +100,16 @@ type
     name: array[0..15] of char;
     width: word;
     height: word;
-    unknown: array[0..101] of byte;
+    behavior: byte;
+    kind: byte;
+    numSprites: byte;
+    itemType: byte;
+    fullHealth: byte;
+    unknown1: byte;
+    firstSpriteIndex: word;
+    childSprite: word;
+    childSprite2: word;
+    unknown2: array[0..89] of byte;
   end;
 
   TLevelObject = record
@@ -908,6 +917,8 @@ begin
   Inc(level_file_offset, sizeof(level_data));
   // Load transformation blocks
   transblock_size := level_file_next_offset - level_file_offset;
+  if transblock_size < 0 then
+    transblock_size := 0;
   if transblock_size <> 0 then
     Archive.load_data(Addr(transblock_data), level_file_offset, transblock_size);
   init_transblocks;

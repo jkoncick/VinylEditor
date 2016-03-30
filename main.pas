@@ -8,7 +8,7 @@ uses
   Dialogs, ExtCtrls, ComCtrls, Menus, StdCtrls, XPMan, Math, Spin, Buttons,
   ShellApi, IniFiles, Clipbrd, CheckLst, Grids, ValEdit,
   // Dialogs
-  set_dialog, block_preset_dialog, level_props_dialog, tile_props_dialog,
+  set_dialog, block_preset_dialog, sprite_props_dialog, tile_props_dialog,
   // Units
   _renderer, _map, _tileset, _settings, _archive, _savegame, _objectinfo;
 
@@ -104,7 +104,7 @@ type
     Exportmap1: TMenuItem;
     btnSavePreset: TButton;
     N6: TMenuItem;
-    Levelproperties1: TMenuItem;
+    Spriteproperties1: TMenuItem;
     N7: TMenuItem;
     Easy1: TMenuItem;
     Moderate1: TMenuItem;
@@ -240,7 +240,7 @@ type
     procedure Usepredefinedtiles1Click(Sender: TObject);
     procedure Setmapsize1Click(Sender: TObject);
     procedure Shiftmap1Click(Sender: TObject);
-    procedure Levelproperties1Click(Sender: TObject);
+    procedure Spriteproperties1Click(Sender: TObject);
     procedure Tileproperties1Click(Sender: TObject);
     procedure LaunchGame1Click(Sender: TObject);
     procedure TestMapDifficultyClick(Sender: TObject);
@@ -775,7 +775,7 @@ begin
   StatusBar.Panels[3].Text := inttostr(Map.width)+' x '+inttostr(Map.height);
   StatusBar.Panels[4].Text := 'Map not saved';
   set_window_titles('Untitled');
-  LevelPropertiesDialog.update_contents;
+  SpritePropertiesDialog.update_contents;
   // Finish it
   resize_map_canvas;
   render_minimap;
@@ -989,9 +989,9 @@ begin
   shift_map(SetDialog.shift_map_direction, SetDialog.ShiftMap_NumTiles.Value);
 end;
 
-procedure TMainWindow.Levelproperties1Click(Sender: TObject);
+procedure TMainWindow.Spriteproperties1Click(Sender: TObject);
 begin
-  LevelPropertiesDialog.Show;
+  SpritePropertiesDialog.Show;
 end;
 
 procedure TMainWindow.Tileproperties1Click(Sender: TObject);
@@ -1191,10 +1191,8 @@ begin
     // Cancel current block
     if mode(mBlockMode) then
     begin
-      cur_block.width := 0;
-      cur_block.height := 0;
-      draw_block_image;
-      render_editing_marker;
+      cur_tile_index := Map.get_tile_index_prio(map_x, map_y);
+      rbTileMode.Checked := true;
     end;
     // Select object
     if mode(mObject) then
@@ -1311,7 +1309,7 @@ begin
     // Place item
     if mode(mItem) then
     begin
-      index := RandomRange(Map.leveldata.tileFirstItemType[cur_item_type], Map.leveldata.tileLastItemType[cur_item_type]);
+      index := RandomRange(Map.leveldata.tileFirstItemType[cur_item_type], Map.leveldata.tileLastItemType[cur_item_type] + 1);
       Map.paint_tile_rect(map_x, map_y, 1, 1, index);
     end;
   end else
@@ -1718,7 +1716,7 @@ begin
   if (obj_type = 65535) and (cbxObjectType.ItemIndex <> -1) and (Map.leveldata.objects[obj_index].behavior = 0) then
   begin
     // Set default behavior for that object
-    cbxObjectBehavior.ItemIndex := Map.leveldata.usedSprites[cbxObjectType.ItemIndex].unknown[0];
+    cbxObjectBehavior.ItemIndex := Map.leveldata.usedSprites[cbxObjectType.ItemIndex].behavior;
     cbxObjectBehaviorChange(nil);
   end else
     ObjectPropertyChange(nil);
@@ -2065,7 +2063,7 @@ begin
   end;
   cur_selected_preset[0] := 0;
   cur_selected_preset[1] := 0;
-  LevelPropertiesDialog.update_contents;
+  SpritePropertiesDialog.update_contents;
   update_editing_mode;
 end;
 
@@ -2346,7 +2344,7 @@ begin
   StatusBar.Panels[4].Text := Archive.level_info[index].name;
   StatusBar.Panels[3].Text := inttostr(Map.width)+' x '+inttostr(Map.height);
   set_window_titles(Archive.level_info[index].name);
-  LevelPropertiesDialog.update_contents;
+  SpritePropertiesDialog.update_contents;
   // Rendering
   resize_map_canvas;
   render_minimap;
@@ -2394,7 +2392,7 @@ begin
   StatusBar.Panels[4].Text := filename;
   StatusBar.Panels[3].Text := inttostr(Map.width)+' x '+inttostr(Map.height);
   set_window_titles(ExtractFileName(filename));
-  LevelPropertiesDialog.update_contents;
+  SpritePropertiesDialog.update_contents;
   // Initialize settings
   Settings.get_file_paths_from_map_filename;
   // Rendering
@@ -2435,11 +2433,11 @@ end;
 procedure TMainWindow.set_window_titles(map_name: String);
 begin
   Caption := 'Vinyl Goddess from Mars Level Editor';
-  LevelPropertiesDialog.Caption := 'Level properties';
+  SpritePropertiesDialog.Caption := 'Sprite properties';
   if map_name <> '' then
   begin
     Caption := Caption + ' - ' + map_name;
-    LevelPropertiesDialog.Caption := LevelPropertiesDialog.Caption + ' - ' + map_name;
+    SpritePropertiesDialog.Caption := SpritePropertiesDialog.Caption + ' - ' + map_name;
   end;
 end;
 
@@ -2538,7 +2536,7 @@ begin
   pos := MainWindow.ScreenToClient(Mouse.CursorPos);
   result := PtInRect(MapCanvas.BoundsRect, pos);
   result := result and not (BlockPresetDialog.Visible and PtInRect(BlockPresetDialog.BoundsRect, Mouse.CursorPos));
-  result := result and not (LevelPropertiesDialog.Visible and PtInRect(LevelPropertiesDialog.BoundsRect, Mouse.CursorPos));
+  result := result and not (SpritePropertiesDialog.Visible and PtInRect(SpritePropertiesDialog.BoundsRect, Mouse.CursorPos));
   result := result or selection_started;
 end;
 

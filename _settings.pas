@@ -42,7 +42,7 @@ var
 implementation
 
 uses
-  SysUtils, main, block_preset_dialog, set_dialog, level_props_dialog, _map;
+  SysUtils, main, block_preset_dialog, set_dialog, sprite_props_dialog, _map;
 
 procedure TSettings.load_precreate_editor_settings;
 var
@@ -91,8 +91,8 @@ begin
   BlockPresetDialog.Top := ini.ReadInteger('GUI','BlockPresetDialog.Top',BlockPresetDialog.Top);
   SetDialog.Left := ini.ReadInteger('GUI','SetDialog.Left',SetDialog.Left);
   SetDialog.Top := ini.ReadInteger('GUI','SetDialog.Top',SetDialog.Top);
-  LevelPropertiesDialog.Left := ini.ReadInteger('GUI','LevelPropertiesDialog.Left',SetDialog.Left);
-  LevelPropertiesDialog.Top := ini.ReadInteger('GUI','LevelPropertiesDialog.Top',SetDialog.Top);
+  SpritePropertiesDialog.Left := ini.ReadInteger('GUI','SpritePropertiesDialog.Left',SpritePropertiesDialog.Left);
+  SpritePropertiesDialog.Top := ini.ReadInteger('GUI','SpritePropertiesDialog.Top',SpritePropertiesDialog.Top);
   ini.Destroy;
 end;
 
@@ -126,8 +126,8 @@ begin
   ini.WriteInteger('GUI','BlockPresetDialog.Top',BlockPresetDialog.Top);
   ini.WriteInteger('GUI','SetDialog.Left',SetDialog.Left);
   ini.WriteInteger('GUI','SetDialog.Top',SetDialog.Top);
-  ini.WriteInteger('GUI','LevelPropertiesDialog.Left',LevelPropertiesDialog.Left);
-  ini.WriteInteger('GUI','LevelPropertiesDialog.Top',LevelPropertiesDialog.Top);
+  ini.WriteInteger('GUI','SpritePropertiesDialog.Left',SpritePropertiesDialog.Left);
+  ini.WriteInteger('GUI','SpritePropertiesDialog.Top',SpritePropertiesDialog.Top);
   ini.UpdateFile;
   ini.Destroy;
 end;

@@ -1333,10 +1333,10 @@ object MainWindow: TMainWindow
       object N6: TMenuItem
         Caption = '-'
       end
-      object Levelproperties1: TMenuItem
-        Caption = 'Level properties...'
+      object Spriteproperties1: TMenuItem
+        Caption = 'Sprite properties...'
         ShortCut = 115
-        OnClick = Levelproperties1Click
+        OnClick = Spriteproperties1Click
       end
       object Tileproperties1: TMenuItem
         Caption = 'Tile properties...'
