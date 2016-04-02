@@ -205,6 +205,9 @@ type
     rbChangeTileType: TRadioButton;
     btnTransblockRemove: TButton;
     btnTransblockAdd: TButton;
+    sbTransblockSelect: TSpeedButton;
+    sbTransblockMove: TSpeedButton;
+    lbTransblockSizePos: TLabel;
     // Main form events
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -300,14 +303,16 @@ type
     procedure seDoorBorderChange(Sender: TObject);
     procedure cbxSwitchTypeChange(Sender: TObject);
     procedure SwitchPropertyChange(Sender: TObject);
+    procedure btnSwitchAddClick(Sender: TObject);
+    procedure btnSwitchRemoveClick(Sender: TObject);
     procedure cbxLockTypeChange(Sender: TObject);
     procedure cbxLockTransblockChange(Sender: TObject);
     procedure btnLockAddClick(Sender: TObject);
     procedure btnLockRemoveClick(Sender: TObject);
+    procedure btnTransblockAddClick(Sender: TObject);
+    procedure btnTransblockRemoveClick(Sender: TObject);
     procedure seCapsuleCountChange(Sender: TObject);
     procedure seBorderChange(Sender: TObject);
-    procedure btnSwitchAddClick(Sender: TObject);
-    procedure btnSwitchRemoveClick(Sender: TObject);
 
   public
 
@@ -712,12 +717,6 @@ begin
     102: {Num6} begin CursorImage.Left := CursorImage.Left + 32; resize_cursor_image; end;
     104: {Num8} begin CursorImage.Top := CursorImage.Top - 32; resize_cursor_image; end;
     end
-  {else if mode(mObject) and (ObjectTypePages.ActivePageIndex = 0) then
-  begin
-    // Select monster type
-    if (key >= 96) and (key <= 105) then
-      lstMonsterTypeList.ItemIndex := key - 96;
-  end;}
 end;
 
 procedure TMainWindow.FormMouseWheelUp(Sender: TObject; Shift: TShiftState;
@@ -1273,7 +1272,8 @@ begin
         obj.pixelY := obj_y;
         update_object_entry(lstObjectList.ItemIndex);
       end;
-    end;
+    end else
+    // Place door destination
     if mode(mDoor) then
     begin
       get_object_mouse_position(obj_x, obj_y, obj_width, obj_height);
@@ -1281,7 +1281,7 @@ begin
       door.destPixelX := obj_x;
       door.destPixelY := obj_y;
       update_door_entry(lstDoorList.ItemIndex);
-    end;
+    end else
     // Place switch
     if mode(mSwitch) then
     begin
@@ -1292,7 +1292,7 @@ begin
       switch.posY := map_y;
       Map.level_data_update_flags := Map.level_data_update_flags + [ufSwitches];
       update_level_data;
-    end;
+    end else
     // Place lock
     if mode(mLock) then
     begin
@@ -1305,7 +1305,17 @@ begin
       lock.posY := map_y;
       Map.level_data_update_flags := Map.level_data_update_flags + [ufLocks];
       update_level_data;
-    end;
+    end else
+    // Chane transformation block position
+    if sbTransblockMove.Down then
+    begin
+      sbTransblockMove.Down := false;
+      if lstTransblockList.ItemIndex >= 0 then
+      begin
+        Map.move_transblock(lstTransblockList.ItemIndex, map_x, map_y);
+        update_level_data;
+      end;
+    end else
     // Place item
     if mode(mItem) then
     begin
@@ -1450,6 +1460,15 @@ begin
       end;
       Map.level_data_update_flags := Map.level_data_update_flags + [ufDoors];
       update_level_data;
+    end else
+    if sbTransblockSelect.Down then
+    begin
+      sbTransblockSelect.Down := false;
+      if lstTransblockList.ItemIndex >= 0 then
+      begin
+        Map.select_transblock_from_map(lstTransblockList.ItemIndex, min_x, min_y, size_x, size_y);
+        update_level_data;
+      end;
     end;
     Map.compute_statistics;
     render_minimap;
@@ -1518,6 +1537,8 @@ begin
     3: begin pnTansblock.Parent := PageSwitches; update_switch_entry(lstSwitchList.ItemIndex); end;
     4: begin pnTansblock.Parent := PageLocks; pnTansblock.Visible := true; end;
   end;
+  sbTransblockSelect.Down := false;
+  sbTransblockMove.Down := false;
   update_editing_mode;
   update_level_data;
 end;
@@ -1697,7 +1718,7 @@ procedure TMainWindow.lstTransblockListDblClick(Sender: TObject);
 var
   transblock: TTransformationBlockPtr;
 begin
-  transblock := Map.transblocks[lstTransblockList.ItemIndex];
+  transblock := Map.get_transblock(lstTransblockList.ItemIndex);
   center_map_to(transblock.posX, transblock.posY);
 end;
 
@@ -1895,6 +1916,26 @@ begin
   update_level_data;
 end;
 
+procedure TMainWindow.btnTransblockAddClick(Sender: TObject);
+begin
+  Map.add_transblock;
+  update_level_data;
+  lstTransblockList.ItemIndex := Map.leveldata.numTransblocks - 1;
+  lstTransblockListClick(nil);
+  if (mode(mLock)) and (lstLockList.ItemIndex >= 0) then
+  begin
+    cbxLockTransblock.ItemIndex := lstTransblockList.ItemIndex;
+    cbxLockTransblockChange(nil);
+  end;
+end;
+
+procedure TMainWindow.btnTransblockRemoveClick(Sender: TObject);
+begin
+  Map.remove_transblock;
+  render_map;
+  update_level_data;
+end;
+
 procedure TMainWindow.seCapsuleCountChange(Sender: TObject);
 begin
   if updating then
@@ -1979,6 +2020,7 @@ var
   min_x, min_y, max_x, max_y: integer;
   obj_x, obj_y, obj_width, obj_height: word;
   mark_color: TColor;
+  transblock: TTransformationBlockPtr;
 begin
   if not mouse_over_map_canvas then
   begin
@@ -2015,6 +2057,13 @@ begin
       Renderer.draw_editing_marker(MapCanvas.Canvas, map_canvas_left, map_canvas_top, map_canvas_width, map_canvas_height,
         Addr(Map.data), mouse_old_x * 16, mouse_old_y * 16, 16, 16, psDot, mark_color, '');
   end else
+  if sbTransblockMove.Down and (lstTransblockList.ItemIndex >= 0) then
+  begin
+    mark_color := $FFC040;
+    transblock := Map.get_transblock(lstTransblockList.ItemIndex);
+    Renderer.draw_editing_marker(MapCanvas.Canvas, map_canvas_left, map_canvas_top, map_canvas_width, map_canvas_height,
+      Addr(Map.data), mouse_old_x * 16, mouse_old_y * 16, transblock.width*16, transblock.height*16, psDot, mark_color, '');
+  end else
   if selection_started then
   begin
     // Draw border around selected block on map
@@ -2027,6 +2076,8 @@ begin
       mark_color := $C04080;
     if mode(mTileMode) or (mode(mPatternMode) and not (ssShift in cur_shift_state)) or (mode(mBlockMode) and not cbAllLayers.Checked) then
       mark_color := layer_marker_color;
+    if sbTransblockSelect.Down then
+      mark_color := $FFC040;
     Renderer.draw_editing_marker(MapCanvas.Canvas, map_canvas_left, map_canvas_top, map_canvas_width, map_canvas_height,
       Addr(Map.data), min_x * 16, min_y * 16, (max_x-min_x+1) * 16, (max_y-min_y+1) * 16, psSolid, mark_color, '');
     StatusBar.Panels[1].Text := inttostr(max_x-min_x+1) + ' x ' + inttostr(max_y-min_y+1);
@@ -2077,6 +2128,7 @@ var
   door: ^TDoorEntry;
   switch: ^TSwitchentry;
   lock: ^TLockEntry;
+  transblock: TTransformationBlockPtr;
 begin
   // Update Object types list
   if ufObjectTypes in Map.leveldata_dirtyflag then
@@ -2133,11 +2185,14 @@ begin
     tmp_strings := TStringList.Create;
     for i := 0 to Map.leveldata.numTransblocks - 1 do
     begin
-      str := 'B ' + inttostr(i) + '  [' + inttostr(Map.transblocks[i].width) + ' x ' + inttostr(Map.transblocks[i].height) + '] (' + inttostr(Map.transblocks[i].posX) + ' , ' + inttostr(Map.transblocks[i].posY) + ')';
+      transblock := Map.get_transblock(i);
+      str := format('B %d  [%d x %d] (%d , %d)', [i, transblock.width, transblock.height, transblock.posX, transblock.posY]);
       tmp_strings.Add(str);
     end;
     cbxLockTransblock.Items := tmp_strings;
-    last_item_index := Max(lstTransblockList.ItemIndex, 0);
+    if lstLockList.ItemIndex >= 0 then
+      cbxLockTransblock.ItemIndex := Map.leveldata.locks[lstLockList.ItemIndex].transblockNumber;
+    last_item_index := Min(Max(lstTransblockList.ItemIndex, 0), tmp_strings.Count - 1);
     lstTransblockList.Items := tmp_strings;
     lstTransblockList.ItemIndex := last_item_index;
     update_transblock_entry(last_item_index);
@@ -2313,6 +2368,7 @@ var
   x, y: integer;
   tile: word;
   tile_x, tile_y: integer;
+  sc: integer;
 begin
   imgTransblock.Canvas.Pen.Color := clWhite;
   imgTransblock.Canvas.Brush.Color := clWhite;
@@ -2320,17 +2376,22 @@ begin
   if (index = -1) or (Map.leveldata.numTransblocks = 0) then
   begin
     lbTransblockNumber.Caption := 'Transformation Block';
+    lbTransblockSizePos.Caption := '';
     exit;
   end;
-  transblock := Map.transblocks[index];
+  transblock := Map.get_transblock(index);
   lbTransblockNumber.Caption := 'Transformation Block ' + inttostr(index);
+  lbTransblockSizePos.Caption := format('Size: [%d x %d] Pos: (%d , %d)', [transblock.width, transblock.height, transblock.posX, transblock.posY]);
+  sc := 32;
+  if (transblock.width > 4) or (transblock.height > 4) then
+    sc := 16;
   for x := 0 to transblock.width - 1 do
     for y := 0 to transblock.height - 1 do
     begin
       tile := transblock.tiles[x + y * transblock.width];
       tile_x := tile mod tileset_cols;
       tile_y := tile div tileset_cols;
-      imgTransblock.Canvas.CopyRect(Rect(x*32, y*32, x*32+32, y*32+32), Tileset.tileimage.Canvas, Rect(tile_x*16, tile_y*16, tile_x*16+16, tile_y*16+16));
+      imgTransblock.Canvas.CopyRect(Rect(x*sc, y*sc, x*sc+sc, y*sc+sc), Tileset.tileimage.Canvas, Rect(tile_x*16, tile_y*16, tile_x*16+16, tile_y*16+16));
     end;
 end;
 
@@ -2516,15 +2577,16 @@ begin
     mPainting:        result := (mode(mTile) and (rbTileMode.Checked or rbPatternMode.Checked or rbChangeTileType.Checked) and not selection_started) or mode(mItem);
     mSelecting:       result := ((mode(mPatternMode) or mode(mBlockMode)) and (ssShift in cur_shift_state)) or
                                 ((mode(mTileMode) or mode(mPatternMode) or mode(mChangeTileType)) and (ssCtrl in cur_shift_state)) or
-                                ((EditorPages.TabIndex = 2) and sbDoorEntrance.Down);
+                                ((EditorPages.TabIndex = 2) and sbDoorEntrance.Down) or
+                                (sbTransblockSelect.Down);
     mRightBtnScroll:  result := mode(mBlockMode) or (selection_started and (ssLeft in cur_shift_state)) or (mode(mObject) and mode(mSelecting));
     mPixelCoords:     result := mode(mObject) or (mode(mDoor) and sbDoorDestination.Down);
-    mSingleTileThing: result := mode(mSwitch) or mode(mLock) or mode(mItem);
+    mSingleTileThing: result := (mode(mSwitch) or mode(mLock) or mode(mItem)) and not sbTransblockSelect.Down and not sbTransblockMove.Down;
     mTile:            result := (EditorPages.TabIndex = 0);
     mObject:          result := (EditorPages.TabIndex = 1);
     mDoor:            result := (EditorPages.TabIndex = 2);
-    mSwitch:          result := (EditorPages.TabIndex = 3);
-    mLock:            result := (EditorPages.TabIndex = 4);
+    mSwitch:          result := (EditorPages.TabIndex = 3) and not sbTransblockMove.Down;
+    mLock:            result := (EditorPages.TabIndex = 4) and not sbTransblockMove.Down;
     mItem:            result := (EditorPages.TabIndex = 5);
   end;
 end;

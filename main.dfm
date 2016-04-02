@@ -1013,7 +1013,7 @@ object MainWindow: TMainWindow
           Left = 0
           Top = 160
           Width = 270
-          Height = 217
+          Height = 225
           BevelOuter = bvNone
           TabOrder = 3
           object lbTransblockNumber: TLabel
@@ -1025,15 +1025,40 @@ object MainWindow: TMainWindow
           end
           object imgTransblock: TImage
             Left = 128
-            Top = 40
+            Top = 44
             Width = 128
             Height = 128
+          end
+          object sbTransblockSelect: TSpeedButton
+            Left = 120
+            Top = 182
+            Width = 70
+            Height = 20
+            AllowAllUp = True
+            GroupIndex = 12
+            Caption = 'Select block'
+          end
+          object sbTransblockMove: TSpeedButton
+            Left = 192
+            Top = 182
+            Width = 73
+            Height = 20
+            AllowAllUp = True
+            GroupIndex = 12
+            Caption = 'Move block'
+          end
+          object lbTransblockSizePos: TLabel
+            Left = 120
+            Top = 24
+            Width = 106
+            Height = 13
+            Caption = 'Size: [0 x 0] Pos: (0, 0)'
           end
           object lstTransblockList: TListBox
             Left = 0
             Top = 0
             Width = 113
-            Height = 209
+            Height = 225
             ItemHeight = 13
             TabOrder = 0
             OnClick = lstTransblockListClick
@@ -1041,21 +1066,21 @@ object MainWindow: TMainWindow
           end
           object btnTransblockRemove: TButton
             Left = 192
-            Top = 192
+            Top = 204
             Width = 73
             Height = 20
             Caption = 'Remove last'
-            Enabled = False
             TabOrder = 1
+            OnClick = btnTransblockRemoveClick
           end
           object btnTransblockAdd: TButton
             Left = 120
-            Top = 192
+            Top = 204
             Width = 70
             Height = 20
             Caption = 'Add new'
-            Enabled = False
             TabOrder = 2
+            OnClick = btnTransblockAddClick
           end
         end
         object btnLockAdd: TButton

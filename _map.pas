@@ -245,9 +245,9 @@ type
     level_data_update_flags: TLevelDataUpdateFlags;
 
     // Transformation block variables
-    transblock_data: array[0..255] of word;
+    transblock_data: array[0..5679] of byte;
     transblock_size: integer;
-    transblocks: array[0..39] of TTransformationBlockPtr;
+    transblock_offsets: array[0..39] of integer;
 
     // Statistics variables
     map_stats: TMapStats;
@@ -295,7 +295,14 @@ type
     // Object manipulation methods
     function copy_object(obj_index, x, y: integer): integer;
     procedure remove_object(obj_index: integer);
-    // Level data modification methods
+
+    // Transformation block modification methods
+    function get_transblock(index: integer): TTransformationBlockPtr;
+    procedure init_transblock_offsets;
+    procedure add_transblock;
+    procedure remove_transblock;
+    procedure select_transblock_from_map(index, x, y, width, height: integer);
+    procedure move_transblock(index, x, y: integer);
 
     // Fill area procedures
   public
@@ -327,7 +334,6 @@ type
     procedure save_map_to_archive(index: integer);
     procedure load_map_file(filename: String);
     procedure save_map_file(filename: String);
-    procedure init_transblocks;
 
     // Map actions
     procedure set_map_size(new_width, new_height: integer);
@@ -585,6 +591,98 @@ begin
   FillChar(level_data.objects[obj_index], sizeof(TLevelObject), 0);
   level_data.objects[obj_index].objType := 65535;
   compute_statistics;
+end;
+
+function TMap.get_transblock(index: integer): TTransformationBlockPtr;
+begin
+  result := Addr(transblock_data[transblock_offsets[index]]);
+end;
+
+procedure TMap.init_transblock_offsets;
+var
+  i: integer;
+  pos: integer;
+  transblock: TTransformationBlockPtr;
+begin
+  pos := 0;
+  for i := 0 to level_data.numTransblocks - 1 do
+  begin
+    transblock_offsets[i] := pos;
+    transblock := get_transblock(i);
+    pos := pos + (transblock.numBytes) + 14;
+  end;
+end;
+
+procedure TMap.add_transblock;
+var
+  transblock: TTransformationBlockPtr;
+  offset: integer;
+begin
+  if level_data.numTransblocks = Length(transblock_offsets) then
+    exit;
+  if level_data.numTransblocks = 0 then
+    offset := 0
+  else begin
+    transblock := get_transblock(level_data.numTransblocks - 1);
+    offset := transblock_offsets[level_data.numTransblocks - 1] + transblock.numBytes + 14;
+  end;
+  transblock_offsets[level_data.numTransblocks] := offset;
+  transblock := get_transblock(level_data.numTransblocks);
+  FillChar(transblock^, 14, 0);
+  Inc(level_data.numTransblocks);
+  Inc(transblock_size, 14);
+  level_data_update_flags := level_data_update_flags + [ufTransblocks];
+end;
+
+procedure TMap.remove_transblock;
+var
+  transblock: TTransformationBlockPtr;
+begin
+  if level_data.numTransblocks = 0 then
+    exit;
+  transblock := get_transblock(level_data.numTransblocks - 1);
+  Dec(level_data.numTransblocks);
+  Dec(transblock_size, 14 + transblock.numBytes);
+  level_data_update_flags := level_data_update_flags + [ufTransblocks];
+end;
+
+procedure TMap.select_transblock_from_map(index, x, y, width, height: integer);
+var
+  transblock: TTransformationBlockPtr;
+  numBytes: integer;
+  diffBytes: integer;
+  offset: integer;
+  xx, yy: integer;
+begin
+  numBytes := width * height * 2;
+  transblock := get_transblock(index);
+  diffBytes := numBytes - transblock.numBytes;
+  transblock.numBytes := numBytes;
+  if (level_data.numTransblocks > (index + 1)) and (diffBytes <> 0) then
+  begin
+    offset := transblock_offsets[index + 1];
+    Move(transblock_data[offset], transblock_data[offset + diffBytes], transblock_size - offset);
+    init_transblock_offsets;
+  end;
+  transblock.posX := x;
+  transblock.posY := y;
+  transblock.width := width;
+  transblock.height := height;
+  for yy := 0 to height - 1 do
+    for xx := 0 to width - 1 do
+      transblock.tiles[yy * width + xx] := map_data[x + xx, y + yy].layers[0];
+  transblock_size := transblock_size + diffBytes;
+  level_data_update_flags := level_data_update_flags + [ufTransblocks];
+end;
+
+procedure TMap.move_transblock(index, x, y: integer);
+var
+  transblock: TTransformationBlockPtr;
+begin
+  transblock := get_transblock(index);
+  transblock.posX := x;
+  transblock.posY := y;
+  level_data_update_flags := level_data_update_flags + [ufTransblocks];
 end;
 
 procedure TMap.fill_area_start(x, y: integer; tile_index: word);
@@ -921,7 +1019,7 @@ begin
     transblock_size := 0;
   if transblock_size <> 0 then
     Archive.load_data(Addr(transblock_data), level_file_offset, transblock_size);
-  init_transblocks;
+  init_transblock_offsets;
   Archive.close_archive(true);
   // Finalize it
   map_loaded := true;
@@ -1035,19 +1133,6 @@ begin
   // Save level data
   BlockWrite(map_file, level_data, sizeof(level_data));
   CloseFile(map_file);
-end;
-
-procedure TMap.init_transblocks;
-var
-  i: integer;
-  pos: integer;
-begin
-  pos := 0;
-  for i := 0 to level_data.numTransblocks - 1 do
-  begin
-    transblocks[i] := Addr(transblock_data[pos]);
-    pos := pos + (transblocks[i].numBytes div 2) + 7;
-  end;
 end;
 
 procedure TMap.set_map_size(new_width, new_height: integer);

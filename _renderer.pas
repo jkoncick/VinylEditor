@@ -130,6 +130,7 @@ var
   door: ^TDoorEntry;
   switch: ^TSwitchEntry;
   lock: ^TLockEntry;
+  transblock: TTransformationBlockPtr;
 begin
   if not Map.loaded then
     exit;
@@ -385,8 +386,9 @@ begin
     // Draw transformation block markers
     for i := 0 to Map.leveldata.numTransblocks - 1 do
     begin
-      dest_rect := Rect((Map.transblocks[i].posX - cnv_left)*32, (Map.transblocks[i].posY - cnv_top)*32,
-        (Map.transblocks[i].posX - cnv_left)*32+Map.transblocks[i].width*32, (Map.transblocks[i].posY - cnv_top)*32+Map.transblocks[i].height*32);
+      transblock := Map.get_transblock(i);
+      dest_rect := Rect((transblock.posX - cnv_left)*32, (transblock.posY - cnv_top)*32,
+        (transblock.posX - cnv_left)*32+transblock.width*32, (transblock.posY - cnv_top)*32+transblock.height*32);
       cnv_target.Pen.Color := $FFC040;
       cnv_target.Rectangle(dest_rect);
       cnv_target.Font.Color := $FFC040;
