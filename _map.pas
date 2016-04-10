@@ -1032,12 +1032,15 @@ end;
 procedure TMap.save_map_to_archive(index: integer);
 var
   level_file_offset: Cardinal;
+  level_file_size: Cardinal;
   bg_layer_buffer: array[0..max_map_width*max_map_height-1] of word;
   fg_layer_buffer: array[0..max_map_width*max_map_height-1] of byte;
   x, y: integer;
 begin
   level_file_offset := Archive.file_list[index + Archive.level_base_index].offset;
+  level_file_size := 4 + map_width * map_height * 3 + sizeof(level_data) + transblock_size;
   Archive.open_archive(fmOpenReadWrite, true);
+  Archive.reserve_space_for_file(index + Archive.level_base_index, level_file_size);
   // Save map size
   archive.save_data(Addr(map_height), level_file_offset, 2);
   archive.save_data(Addr(map_width), level_file_offset+2, 2);
@@ -1058,7 +1061,7 @@ begin
   Archive.save_data(Addr(level_data), level_file_offset, sizeof(level_data));
   Inc(level_file_offset, sizeof(level_data));
   // Save transformation blocks
-  if transblock_size <> 0 then
+  if transblock_size > 0 then
     Archive.save_data(Addr(transblock_data), level_file_offset, transblock_size);
   Archive.close_archive(true);
   map_index := index;
@@ -1092,8 +1095,15 @@ begin
       map_data[x, y].layers[1] := fg_layer_buffer[y * map_width + x];
   // Load level data
   BlockRead(map_file, level_data, sizeof(level_data));
-  CloseFile(map_file);
+  // Load transformation blocks
+  transblock_size := Filesize(map_file) - Filepos(map_file);
+  if transblock_size <> 0 then
+  begin
+    BlockRead(map_file, transblock_data, transblock_size);
+    init_transblock_offsets;
+  end;
   // Finalize it
+  CloseFile(map_file);  
   map_loaded := true;
   map_index := -1;
   reset_undo_history;
@@ -1132,6 +1142,9 @@ begin
   BlockWrite(map_file, fg_layer_buffer, map_width * map_height);
   // Save level data
   BlockWrite(map_file, level_data, sizeof(level_data));
+  // Save transformation blocks
+  if transblock_size > 0 then
+    BlockWrite(map_file, transblock_data, transblock_size);
   CloseFile(map_file);
 end;
 

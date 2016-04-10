@@ -40,7 +40,7 @@ type
     archive_open_permanent: boolean;
     archive_exists: boolean;
     archive_filename: String;
-    archive_filesize: integer;
+    archive_filesize: Cardinal;
     archive_version: String;
     archive_file_mode: integer;
     archive_file: File of byte;
@@ -61,9 +61,6 @@ type
     level_count: Integer;
     level_info: array of TLevelInfo;
 
-    // Monster types
-    monster_type_names: array[0..39] of string;
-
   public
     procedure init;
     procedure load_config(filename: string);
@@ -72,12 +69,12 @@ type
     procedure close_archive(force: boolean);
     procedure load_data(mem: Pointer; offset, size: Cardinal);
     procedure save_data(mem: Pointer; offset, size: Cardinal);
+    procedure reserve_space_for_file(file_index: integer; size: Cardinal);
 
     procedure load_file_list;
     procedure load_palette(file_index: integer);
     procedure load_tileset_image(target: TBitmap; index: integer);
 
-    function get_monster_type_name(sprite_set: word): string;
     function get_first_level_by_tileset(tileset_index: integer): integer;
   end;
 
@@ -96,8 +93,10 @@ var
   tmp_strings: TStringList;
   i: integer;
   version: String;
-  ini_filesize: integer;
+  ini_filesize: Cardinal;
   SRec: TSearchRec;
+  exe_filename: String;
+  exe_filesize: Cardinal;
 begin
   // Check if archive exists
   archive_filename := Settings.GameFolder + 'GODDESS.LBR';
@@ -108,15 +107,22 @@ begin
     exit;
   end;
 
-  // Get GODDESS.LBR filesize
-  archive_filesize := 0;
-  if FindFirst(archive_filename, faAnyfile, SRec) = 0 then
+  // Check if executable exists
+  exe_filename := Settings.GameFolder + 'GODDESS.EXE';
+  exe_filesize := 0;
+  if not FileExists(exe_filename) then
   begin
-    archive_filesize := SRec.Size;
+    Application.MessageBox('Could not find game executable (GODDESS.EXE) file.'#13'Please copy the editor into your VGFM game folder'#13'or specify the game folder in VinylEditor.ini file.', 'Fatal Error', MB_ICONERROR);
+    exit;
+  end;
+  // Get GODDESS.EXE filesize
+  if FindFirst(exe_filename, faAnyfile, SRec) = 0 then
+  begin
+    exe_filesize := SRec.Size;
     FindClose(SRec);
   end;
 
-  // Detect game version from GODDESS.LBR filesize
+  // Detect game version from GODDESS.EXE filesize
   version := '';
   ini := TMemIniFile.Create(current_dir + 'config\versions.ini');
   tmp_strings := TStringList.Create;
@@ -125,7 +131,7 @@ begin
   begin
     version := tmp_strings[i];
     ini_filesize := ini.ReadInteger('Versions', version, 0);
-    if ini_filesize = archive_filesize then
+    if ini_filesize = exe_filesize then
     begin
       archive_version := version;
       break;
@@ -134,7 +140,7 @@ begin
   tmp_strings.Destroy;
   if archive_version = '' then
   begin
-    Application.MessageBox(PChar('Could not detect your game version - the GODDESS.LBR file size does not match any known size.'#13'Using settings for this version: '+ version +#13'The levels and graphics may be broken.'), 'Error', MB_ICONWARNING);
+    Application.MessageBox(PChar('Could not detect your game version - the GODDESS.EXE file size does not match any size defined in versions.ini.'#13'Using settings for this version: '+ version), 'Error', MB_ICONWARNING);
   end;
 
   // Load configuration from ini file
@@ -142,9 +148,6 @@ begin
 
   // Load file list
   load_file_list;
-
-  // Load palette
-  //load_palette;
 end;
 
 procedure TArchive.load_config(filename: string);
@@ -152,7 +155,7 @@ var
   ini: TMemIniFile;
   tmp_strings: TStringList;
   decoder: TStringList;
-  i, num: integer;
+  i: integer;
 begin
   // Load configuration from ini file
   ini := TMemIniFile.Create(filename);
@@ -181,15 +184,6 @@ begin
     level_info[i].name := tmp_strings[i];
     level_info[i].tileset := ini.ReadInteger('Levels', tmp_strings[i], 1) - 1;
   end;
-  // Load monster types
-  ini.ReadSection('Monster_Types', tmp_strings);
-  for i := 0 to tmp_strings.Count -1 do
-  begin
-    num := strtoint(tmp_strings[i]);
-    if num >= Length(monster_type_names) then
-      continue;
-    monster_type_names[num] := ini.ReadString('Monster_Types', tmp_strings[i], '');
-  end;
   // Free memory
   ini.Destroy;
   tmp_strings.Destroy;
@@ -199,7 +193,7 @@ end;
 procedure TArchive.open_archive(file_mode: integer; permanent: boolean);
 begin
   // Archive is already opened with same file mode - do nothing
-  if archive_open_permanent and (archive_file_mode = file_mode) then
+  if archive_open_permanent and (archive_file_mode >= file_mode) then
     exit;
   // Archive is already opened with different file mode - close it first
   if archive_open_permanent and (archive_file_mode < file_mode) then
@@ -236,9 +230,46 @@ begin
   close_archive(false);
 end;
 
+procedure TArchive.reserve_space_for_file(file_index: integer; size: Cardinal);
+var
+  old_size: Cardinal;
+  size_diff: integer;
+  already_open: boolean;
+  buffer: array of byte;
+  buffer_size: Cardinal;
+  i: integer;
+begin
+  old_size := file_list[file_index + 1].offset - file_list[file_index].offset;
+  if size = old_size then
+    exit;
+  size_diff := size - old_size;
+  already_open := archive_open_permanent and (archive_file_mode = fmOpenReadWrite);
+  if not already_open then
+    open_archive(fmOpenReadWrite, true);
+  // Shift data following the file in question
+  buffer_size := archive_filesize - file_list[file_index + 1].offset;
+  SetLength(buffer, buffer_size);
+  load_data(buffer, file_list[file_index + 1].offset, buffer_size);
+  save_data(buffer, file_list[file_index].offset + size, buffer_size);
+  // Adjust all offsets in the file list
+  for i := file_index + 1 to file_count - 1 do
+    file_list[i].offset := integer(file_list[i].offset) + size_diff;
+  save_data(file_list, 2, file_count * sizeof(TFileEntry));
+  // Truncate archive if the final size is smaller than before
+  archive_filesize := integer(archive_filesize) + size_diff;
+  if size_diff < 0 then
+  begin
+    Seek(archive_file, archive_filesize);
+    Truncate(archive_file);
+  end;
+  if not already_open then
+    close_archive(true);
+end;
+
 procedure TArchive.load_file_list;
 begin
   open_archive(fmOpenRead, true);
+  archive_filesize := filesize(archive_file);
   load_data(Addr(file_count), 0, 2);
   SetLength(file_list, file_count);
   load_data(file_list, 2, file_count * sizeof(TFileEntry));
@@ -334,14 +365,6 @@ begin
     end;
   end;
   close_archive(true);
-end;
-
-function TArchive.get_monster_type_name(sprite_set: word): string;
-begin
-  if (sprite_set >= Length(Archive.monster_type_names)) or (monster_type_names[sprite_set] = '') then
-    result := 'Sprite set ' + inttostr(sprite_set)
-  else
-    result := monster_type_names[sprite_set];
 end;
 
 function TArchive.get_first_level_by_tileset(tileset_index: integer): integer;
