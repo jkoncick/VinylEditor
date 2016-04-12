@@ -1570,15 +1570,49 @@ end;
 
 procedure TMainWindow.BlockImageMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  scale, border_x, border_y: integer;
+  xx, yy: integer;
 begin
-  if rbTileMode.Checked then
+  if Button = mbLeft then
   begin
-    cur_tile_index := cur_tileset_offset * 256 + (Y div 16) * 16 + (X div 16);
-    update_editing_mode;
+    if rbTileMode.Checked then
+    begin
+      cur_tile_index := cur_tileset_offset * 256 + (Y div 16) * 16 + (X div 16);
+      update_editing_mode;
+    end else
+    if rbPatternMode.Checked or rbBlockMode.Checked then
+    begin
+      BlockPresetDialog.Show;
+    end;
   end else
-  if rbPatternMode.Checked or rbBlockMode.Checked then
+  if Button = mbRight then
   begin
-    BlockPresetDialog.Show;
+    if rbPatternMode.Checked then
+    begin
+      scale := IfThen((Map.pattern.width > 9) or (Map.pattern.height > 9), 1, 2);
+      border_x := (BlockImage.Width - Map.pattern.width * 16 * scale) div 2;
+      border_y := (BlockImage.Height - Map.pattern.height * 16 * scale) div 2;
+      xx := (x - border_x) div (16 * scale);
+      yy := (y - border_y) div (16 * scale);
+      if (xx < 0) or (xx >= Map.pattern.width) or (yy < 0) or (yy >= Map.pattern.height) then
+        exit;
+      Map.cur_pattern.tiles[xx,yy] := tile_no_change;
+      draw_block_image;
+    end else
+    if rbBlockMode.Checked then
+    begin
+      border_x := (BlockImage.Width - cur_block.width * 32) div 2;
+      border_y := (BlockImage.Height - cur_block.height * 32) div 2;
+      xx := (x - border_x) div 32;
+      yy := (y - border_y) div 32;
+      if (xx < 0) or (xx >= cur_block.width) or (yy < 0) or (yy >= cur_block.height) then
+        exit;
+      cur_block.data[xx,yy].layers[0] := tile_no_change;
+      cur_block.data[xx,yy].layers[1] := tile_no_change;
+      draw_cursor_image;
+      draw_block_image;
+    end;
   end;
 end;
 
@@ -2758,7 +2792,10 @@ begin
     for x:= 0 to cur_block.width - 1 do
       for y := 0 to cur_block.height - 1 do
       begin
-        cur_block.data[x,y].layers[Tileset.tile_layer[preset.tiles[x,y]]] := preset.tiles[x,y];
+        if preset.tiles[x, y] = tile_no_change then
+          cur_block.data[x,y].layers[1] := tile_no_change
+        else
+          cur_block.data[x,y].layers[Tileset.tile_layer[preset.tiles[x,y]]] := preset.tiles[x,y];
       end;
   end;
   btnSavePreset.Visible := false;

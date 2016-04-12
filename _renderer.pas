@@ -234,7 +234,7 @@ begin
         cnv_target.Rectangle(dest_rect);
       end;
       // Foreground layer
-      if o_fglr and (map_tile.layers[1] <> 0) then
+      if o_fglr and (map_tile.layers[1] <> 0) and (map_tile.layers[1] <> tile_no_change) then
       begin
         tile_index := map_tile.layers[1];
         tile_x := tile_index mod tileset_cols;

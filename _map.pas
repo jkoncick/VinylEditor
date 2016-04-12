@@ -371,7 +371,8 @@ begin
   // Modify the actual tile
   if new_tile.layers[0] <> tile_no_change then
     map_data[x,y].layers[0] := new_tile.layers[0];
-  map_data[x,y].layers[1] := new_tile.layers[1];
+  if new_tile.layers[1] <> tile_no_change then
+    map_data[x,y].layers[1] := new_tile.layers[1];
   Renderer.invalidate_map_tile(x, y);
 end;
 
