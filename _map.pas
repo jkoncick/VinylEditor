@@ -80,7 +80,9 @@ type
     switchType: word;
     var1: word;
     var2: word;
-    unknown2: array[0..6] of word;
+    var3: word;
+    var4: word;
+    unknown: array[0..4] of word;
   end;
 
   TLockEntry = record

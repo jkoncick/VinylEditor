@@ -186,12 +186,6 @@ type
     lbSwitchPosition: TLabel;
     lbSwitchType: TLabel;
     cbxSwitchType: TComboBox;
-    pnSwitchVar1: TPanel;
-    lbSwitchVar1: TLabel;
-    seSwitchVar1: TSpinEdit;
-    pnSwitchVar2: TPanel;
-    lbSwitchVar2: TLabel;
-    seSwitchVar2: TSpinEdit;
     btnSwitchRemove: TButton;
     btnSwitchAdd: TButton;
     cbDoorAutoSet: TCheckBox;
@@ -208,6 +202,20 @@ type
     sbTransblockSelect: TSpeedButton;
     sbTransblockMove: TSpeedButton;
     lbTransblockSizePos: TLabel;
+    pnSwitchT1: TPanel;
+    lbSwitchT1ObjNum: TLabel;
+    seSwitchT1ObjNum: TSpinEdit;
+    pnSwitchT3: TPanel;
+    lbSwitchT3Transblock: TLabel;
+    cbxSwitchT3Transblock: TComboBox;
+    pnSwitchT4: TPanel;
+    lbSwitchT4Area: TLabel;
+    sbSwitchT4Area: TSpeedButton;
+    pnSwitchT5: TPanel;
+    lbSwitchT5FirstObj: TLabel;
+    seSwitchT5FirstObj: TSpinEdit;
+    lbSwitchT5LastObj: TLabel;
+    seSwitchT5LastObj: TSpinEdit;
     // Main form events
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -1385,6 +1393,7 @@ var
   min_x, max_x, min_y, max_y: word;
   size_x, size_y: word;
   door: ^TDoorEntry;
+  switch: ^TSwitchEntry;
   index: integer;
 begin
   cur_shift_state := Shift;
@@ -1461,6 +1470,7 @@ begin
       Map.level_data_update_flags := Map.level_data_update_flags + [ufDoors];
       update_level_data;
     end else
+    // Select transformation block
     if sbTransblockSelect.Down then
     begin
       sbTransblockSelect.Down := false;
@@ -1468,6 +1478,20 @@ begin
       begin
         Map.select_transblock_from_map(lstTransblockList.ItemIndex, min_x, min_y, size_x, size_y);
         update_level_data;
+      end;
+    end else
+    // Select remove-fg-tiles-switch area
+    if sbSwitchT4Area.Down then
+    begin
+      sbSwitchT4Area.Down := false;
+      if lstSwitchList.ItemIndex >= 0 then
+      begin
+        switch := Addr(Map.leveldata.switches[lstSwitchList.ItemIndex]);
+        switch.var1 := min_x;
+        switch.var2 := min_y;
+        switch.var3 := size_x;
+        switch.var4 := size_y;
+        update_switch_entry(lstSwitchList.ItemIndex);
       end;
     end;
     Map.compute_statistics;
@@ -1539,6 +1563,7 @@ begin
   end;
   sbTransblockSelect.Down := false;
   sbTransblockMove.Down := false;
+  sbSwitchT4Area.Down := false;
   update_editing_mode;
   update_level_data;
 end;
@@ -1823,11 +1848,9 @@ end;
 
 procedure TMainWindow.cbxSwitchTypeChange(Sender: TObject);
 begin
-  updating := true;
-  seSwitchVar1.Value := 0;
-  seSwitchVar2.Value := 0;
-  updating := false;
-  SwitchPropertyChange(nil);
+  if lstSwitchList.ItemIndex = -1 then
+    exit;
+  Map.level_data.switches[lstSwitchList.ItemIndex].switchType := cbxSwitchType.ItemIndex;
   Map.level_data_update_flags := Map.level_data_update_flags + [ufSwitches];
   update_level_data;
 end;
@@ -1838,17 +1861,21 @@ var
 begin
   if updating then
     exit;
+  if lstSwitchList.ItemIndex = -1 then
+    exit;
   switch := Addr(Map.leveldata.switches[lstSwitchList.ItemIndex]);
-  switch.switchType := cbxSwitchType.ItemIndex;
-  switch.var1 := strtointdef(seSwitchVar1.Text, 0);
-  switch.var2 := strtointdef(seSwitchVar2.Text, 0);
-  if switch.switchType = 3 then
-  begin
-    lstTransblockList.ItemIndex := switch.var1;
-    lstTransblockListClick(nil);
+  case switch.switchType of
+    1: switch.var1 := strtointdef(seSwitchT1ObjNum.Text, 0);
+    3: begin
+        switch.var1 := cbxSwitchT3Transblock.ItemIndex;
+        lstTransblockList.ItemIndex := switch.var1;
+        lstTransblockListClick(nil);
+      end;
+    5: begin
+        switch.var1 := strtointdef(seSwitchT5FirstObj.Text, 0);
+        switch.var2 := strtointdef(seSwitchT5LastObj.Text, 0);
+      end;
   end;
-  if switch.switchType = 4 then
-    render_map;
 end;
 
 procedure TMainWindow.btnSwitchAddClick(Sender: TObject);
@@ -1926,6 +1953,11 @@ begin
   begin
     cbxLockTransblock.ItemIndex := lstTransblockList.ItemIndex;
     cbxLockTransblockChange(nil);
+  end;
+  if (mode(mSwitch)) and (lstSwitchList.ItemIndex >= 0) and (Map.leveldata.switches[lstSwitchList.ItemIndex].switchType = 3) then
+  begin
+    cbxSwitchT3Transblock.ItemIndex := lstTransblockList.ItemIndex;
+    SwitchPropertyChange(nil);
   end;
 end;
 
@@ -2078,6 +2110,8 @@ begin
       mark_color := layer_marker_color;
     if sbTransblockSelect.Down then
       mark_color := $FFC040;
+    if sbSwitchT4Area.Down then
+      mark_color := $4040FF;
     Renderer.draw_editing_marker(MapCanvas.Canvas, map_canvas_left, map_canvas_top, map_canvas_width, map_canvas_height,
       Addr(Map.data), min_x * 16, min_y * 16, (max_x-min_x+1) * 16, (max_y-min_y+1) * 16, psSolid, mark_color, '');
     StatusBar.Panels[1].Text := inttostr(max_x-min_x+1) + ' x ' + inttostr(max_y-min_y+1);
@@ -2192,6 +2226,9 @@ begin
     cbxLockTransblock.Items := tmp_strings;
     if lstLockList.ItemIndex >= 0 then
       cbxLockTransblock.ItemIndex := Map.leveldata.locks[lstLockList.ItemIndex].transblockNumber;
+    cbxSwitchT3Transblock.Items := tmp_strings;
+    if lstSwitchList.ItemIndex >= 0 then
+      cbxSwitchT3Transblock.ItemIndex := Map.leveldata.switches[lstSwitchList.ItemIndex].var1;
     last_item_index := Min(Max(lstTransblockList.ItemIndex, 0), tmp_strings.Count - 1);
     lstTransblockList.Items := tmp_strings;
     lstTransblockList.ItemIndex := last_item_index;
@@ -2313,31 +2350,42 @@ end;
 procedure TMainWindow.update_switch_entry(index: integer);
 var
   switch: ^TSwitchEntry;
+  tp: integer;
 begin
+  sbSwitchT4Area.Down := false;
   if (index = -1) or (Map.leveldata.numSwitches = 0) then
   begin
     lbSwitchNumber.Caption := 'Switch';
     lbSwitchPosition.Caption := '';
     cbxSwitchType.ItemIndex := -1;
-    updating := true;
-    seSwitchVar1.Value := 0;
-    seSwitchVar2.Value := 0;
-    updating := false;
+    pnSwitchT1.Visible := false;
+    pnSwitchT3.Visible := false;
+    pnSwitchT4.Visible := false;
+    pnSwitchT5.Visible := false;
+    pnTansblock.Visible := false;
     exit;
   end;
   switch := Addr(Map.leveldata.switches[index]);
   lbSwitchNumber.Caption := 'Switch ' + inttostr(index);
   lbSwitchPosition.Caption := 'Position: (' + inttostr(switch.posX) + ' , ' + inttostr(switch.posY) + ')';
-  cbxSwitchType.ItemIndex := switch.switchType;
-  pnTansblock.Visible := switch.switchType = 3;
-  if switch.switchType = 3 then
+  tp := switch.switchType;
+  cbxSwitchType.ItemIndex := tp;
+  pnSwitchT1.Visible := tp = 1;
+  pnSwitchT3.Visible := tp = 3;
+  pnSwitchT4.Visible := tp = 4;
+  pnSwitchT5.Visible := tp = 5;
+  pnTansblock.Visible := tp = 3;
+  if tp = 3 then
   begin
     lstTransblockList.ItemIndex := switch.var1;
     lstTransblockListClick(nil);
   end;
   updating := true;
-  seSwitchVar1.Value := switch.var1;
-  seSwitchVar2.Value := switch.var2;
+  seSwitchT1ObjNum.Value := switch.var1;
+  cbxSwitchT3Transblock.ItemIndex := switch.var1;
+  lbSwitchT4Area.Caption := format('Area [%d x %d] (%d , %d)', [switch.var3, switch.var4, switch.var1, switch.var2]);
+  seSwitchT5FirstObj.Value := switch.var1;
+  seSwitchT5LastObj.Value := switch.var2;
   updating := false;
 end;
 
@@ -2578,15 +2626,15 @@ begin
     mSelecting:       result := ((mode(mPatternMode) or mode(mBlockMode)) and (ssShift in cur_shift_state)) or
                                 ((mode(mTileMode) or mode(mPatternMode) or mode(mChangeTileType)) and (ssCtrl in cur_shift_state)) or
                                 ((EditorPages.TabIndex = 2) and sbDoorEntrance.Down) or
-                                (sbTransblockSelect.Down);
+                                (sbTransblockSelect.Down or sbSwitchT4Area.Down);
     mRightBtnScroll:  result := mode(mBlockMode) or (selection_started and (ssLeft in cur_shift_state)) or (mode(mObject) and mode(mSelecting));
     mPixelCoords:     result := mode(mObject) or (mode(mDoor) and sbDoorDestination.Down);
-    mSingleTileThing: result := (mode(mSwitch) or mode(mLock) or mode(mItem)) and not sbTransblockSelect.Down and not sbTransblockMove.Down;
+    mSingleTileThing: result := (mode(mSwitch) or mode(mLock) or mode(mItem));
     mTile:            result := (EditorPages.TabIndex = 0);
     mObject:          result := (EditorPages.TabIndex = 1);
     mDoor:            result := (EditorPages.TabIndex = 2);
-    mSwitch:          result := (EditorPages.TabIndex = 3) and not sbTransblockMove.Down;
-    mLock:            result := (EditorPages.TabIndex = 4) and not sbTransblockMove.Down;
+    mSwitch:          result := (EditorPages.TabIndex = 3) and not sbTransblockMove.Down and not sbTransblockSelect.Down and not sbSwitchT4Area.Down;
+    mLock:            result := (EditorPages.TabIndex = 4) and not sbTransblockMove.Down and not sbTransblockSelect.Down;
     mItem:            result := (EditorPages.TabIndex = 5);
   end;
 end;

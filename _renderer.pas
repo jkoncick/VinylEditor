@@ -363,10 +363,10 @@ begin
       cnv_target.Rectangle(dest_rect);
       cnv_target.Font.Color := $00FFFF;
       cnv_target.TextOut(dest_rect.Left + 2, dest_rect.Top + 4, 'Sw ' + inttostr(i));
-      // Draw remove wall marker
+      // Draw remove foreground tiles marker
       if switch.switchType = 4 then
       begin
-        dest_rect := Rect((switch.var1 - cnv_left)*32, (switch.var2 - cnv_top)*32, (switch.var1 - cnv_left)*32+switch.unknown2[0]*32, (switch.var2 - cnv_top)*32+switch.unknown2[1]*32);
+        dest_rect := Rect((switch.var1 - cnv_left)*32, (switch.var2 - cnv_top)*32, (switch.var1 - cnv_left)*32+switch.var3*32, (switch.var2 - cnv_top)*32+switch.var4*32);
         cnv_target.Pen.Color := $4040FF;
         cnv_target.Rectangle(dest_rect);
         cnv_target.Font.Color := $4040FF;

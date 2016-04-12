@@ -863,65 +863,13 @@ object MainWindow: TMainWindow
             '4 - Remove fg.tiles'
             '5 - Remove objects')
         end
-        object pnSwitchVar1: TPanel
-          Left = 120
-          Top = 48
-          Width = 145
-          Height = 29
-          BevelOuter = bvNone
-          TabOrder = 2
-          object lbSwitchVar1: TLabel
-            Left = 0
-            Top = 8
-            Width = 51
-            Height = 13
-            Caption = 'Property 1:'
-          end
-          object seSwitchVar1: TSpinEdit
-            Left = 80
-            Top = 4
-            Width = 65
-            Height = 22
-            MaxValue = 65535
-            MinValue = 0
-            TabOrder = 0
-            Value = 0
-            OnChange = SwitchPropertyChange
-          end
-        end
-        object pnSwitchVar2: TPanel
-          Left = 120
-          Top = 74
-          Width = 145
-          Height = 29
-          BevelOuter = bvNone
-          TabOrder = 3
-          object lbSwitchVar2: TLabel
-            Left = 0
-            Top = 8
-            Width = 51
-            Height = 13
-            Caption = 'Property 2:'
-          end
-          object seSwitchVar2: TSpinEdit
-            Left = 80
-            Top = 4
-            Width = 65
-            Height = 22
-            MaxValue = 65535
-            MinValue = 0
-            TabOrder = 0
-            Value = 0
-            OnChange = SwitchPropertyChange
-          end
-        end
         object btnSwitchRemove: TButton
           Left = 192
           Top = 128
           Width = 73
           Height = 20
           Caption = 'Remove last'
-          TabOrder = 4
+          TabOrder = 2
           OnClick = btnSwitchRemoveClick
         end
         object btnSwitchAdd: TButton
@@ -930,8 +878,131 @@ object MainWindow: TMainWindow
           Width = 70
           Height = 20
           Caption = 'Add new'
-          TabOrder = 5
+          TabOrder = 3
           OnClick = btnSwitchAddClick
+        end
+        object pnSwitchT1: TPanel
+          Left = 116
+          Top = 48
+          Width = 152
+          Height = 33
+          BevelOuter = bvNone
+          TabOrder = 4
+          Visible = False
+          object lbSwitchT1ObjNum: TLabel
+            Left = 4
+            Top = 8
+            Width = 72
+            Height = 13
+            Caption = 'Object number:'
+          end
+          object seSwitchT1ObjNum: TSpinEdit
+            Left = 84
+            Top = 4
+            Width = 65
+            Height = 22
+            MaxValue = 149
+            MinValue = 0
+            TabOrder = 0
+            Value = 0
+            OnChange = SwitchPropertyChange
+          end
+        end
+        object pnSwitchT3: TPanel
+          Left = 116
+          Top = 48
+          Width = 152
+          Height = 49
+          BevelOuter = bvNone
+          TabOrder = 5
+          Visible = False
+          object lbSwitchT3Transblock: TLabel
+            Left = 4
+            Top = 8
+            Width = 132
+            Height = 13
+            Caption = 'Target transformation block:'
+          end
+          object cbxSwitchT3Transblock: TComboBox
+            Left = 4
+            Top = 28
+            Width = 145
+            Height = 21
+            Style = csDropDownList
+            ItemHeight = 13
+            TabOrder = 0
+            OnChange = SwitchPropertyChange
+          end
+        end
+        object pnSwitchT4: TPanel
+          Left = 116
+          Top = 48
+          Width = 152
+          Height = 49
+          BevelOuter = bvNone
+          TabOrder = 6
+          Visible = False
+          object lbSwitchT4Area: TLabel
+            Left = 4
+            Top = 8
+            Width = 79
+            Height = 13
+            Caption = 'Area: 0 , 0 : 0 , 0'
+          end
+          object sbSwitchT4Area: TSpeedButton
+            Left = 4
+            Top = 28
+            Width = 141
+            Height = 20
+            AllowAllUp = True
+            GroupIndex = 11
+            Caption = 'Set target area'
+          end
+        end
+        object pnSwitchT5: TPanel
+          Left = 116
+          Top = 48
+          Width = 152
+          Height = 57
+          BevelOuter = bvNone
+          TabOrder = 7
+          Visible = False
+          object lbSwitchT5FirstObj: TLabel
+            Left = 4
+            Top = 8
+            Width = 54
+            Height = 13
+            Caption = 'First object:'
+          end
+          object lbSwitchT5LastObj: TLabel
+            Left = 4
+            Top = 32
+            Width = 55
+            Height = 13
+            Caption = 'Last object:'
+          end
+          object seSwitchT5FirstObj: TSpinEdit
+            Left = 84
+            Top = 4
+            Width = 65
+            Height = 22
+            MaxValue = 149
+            MinValue = 0
+            TabOrder = 0
+            Value = 0
+            OnChange = SwitchPropertyChange
+          end
+          object seSwitchT5LastObj: TSpinEdit
+            Left = 84
+            Top = 28
+            Width = 65
+            Height = 22
+            MaxValue = 149
+            MinValue = 0
+            TabOrder = 1
+            Value = 0
+            OnChange = SwitchPropertyChange
+          end
         end
       end
       object PageLocks: TTabSheet
