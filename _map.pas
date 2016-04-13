@@ -932,8 +932,18 @@ begin
       end;
     end;
   for i := 0 to Length(level_data.objects) - 1 do
+  begin
     if level_data.objects[i].objType <> 65535 then
+    begin
       Inc(map_stats.cnt_objects);
+      if ObjectInfo.behaviors[level_data.objects[i].behavior].ismonster then
+        Inc(map_stats.cnt_monsters);
+      if leveldata.usedSprites[level_data.objects[i].objType].name = 'healpot.cmp' then
+        Inc(map_stats.cnt_healpots);
+      if leveldata.usedSprites[level_data.objects[i].objType].name = 'healjug.cmp' then
+        Inc(map_stats.cnt_healjugs);
+    end;
+  end;
   MainWindow.show_statistics;
 end;
 

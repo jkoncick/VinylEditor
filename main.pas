@@ -1785,6 +1785,8 @@ procedure TMainWindow.cbxObjectTypeChange(Sender: TObject);
 var
   obj_index: integer;
   obj_type: word;
+  obj_behavior: word;
+  behv: ^TObjBehaviorInfo;
 begin
   render_editing_marker;
   if updating then
@@ -1795,15 +1797,45 @@ begin
   // Object type was changed from none to some type
   if (obj_type = 65535) and (cbxObjectType.ItemIndex <> -1) and (Map.leveldata.objects[obj_index].behavior = 0) then
   begin
-    // Set default behavior for that object
-    cbxObjectBehavior.ItemIndex := Map.leveldata.usedSprites[cbxObjectType.ItemIndex].behavior;
+    // Set default behavior and property values for that object
+    obj_behavior := Map.leveldata.usedSprites[cbxObjectType.ItemIndex].behavior;
+    cbxObjectBehavior.ItemIndex := obj_behavior;
     cbxObjectBehaviorChange(nil);
+    behv := Addr(ObjectInfo.behaviors[obj_behavior]);
+    seObjectVar1.Value := behv.prop1def;
+    seObjectVar2.Value := behv.prop2def;
+    seObjectVar3.Value := behv.prop3def;
+    seObjectVar4.Value := behv.prop4def;
+    seObjectVar5.Value := behv.prop5def;
   end else
     ObjectPropertyChange(nil);
 end;
 
 procedure TMainWindow.cbxObjectBehaviorChange(Sender: TObject);
+var
+  binfo: ^TObjBehaviorInfo;
 begin
+  binfo := Addr(ObjectInfo.behaviors[cbxObjectBehavior.ItemIndex]);
+  if binfo.prop1 <> '' then
+    lbObjectVar1.Caption := binfo.prop1 + ':'
+  else
+    lbObjectVar1.Caption := '';
+  if binfo.prop2 <> '' then
+    lbObjectVar2.Caption := binfo.prop2 + ':'
+  else
+    lbObjectVar2.Caption := '';
+  if binfo.prop3 <> '' then
+    lbObjectVar3.Caption := binfo.prop3 + ':'
+  else
+    lbObjectVar3.Caption := '';
+  if binfo.prop4 <> '' then
+    lbObjectVar4.Caption := binfo.prop4 + ':'
+  else
+    lbObjectVar4.Caption := '';
+  if binfo.prop5 <> '' then
+    lbObjectVar5.Caption := binfo.prop5 + ':'
+  else
+    lbObjectVar5.Caption := '';
   ObjectPropertyChange(nil);
 end;
 
