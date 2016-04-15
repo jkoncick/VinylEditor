@@ -1198,6 +1198,10 @@ var
   src_x, src_y: integer;
   move_x, move_y: integer;
   i: integer;
+  door: ^TDoorEntry;
+  switch: ^TSwitchEntry;
+  lock: ^TLockEntry;
+  transblock: TTransformationBlockPtr;
 begin
   move_x := 0;
   move_y := 0;
@@ -1257,6 +1261,50 @@ begin
   begin
     level_data.objects[i].pixelX := Max(Min(level_data.objects[i].pixelX + move_x * 16, map_width * 16 - 1), 0);
     level_data.objects[i].pixelY := Max(Min(level_data.objects[i].pixelY + move_y * 16, map_height * 16 - 1), 0);
+  end;
+  // Shift doors
+  for i := 0 to level_data.numDoors - 1 do
+  begin
+    door := Addr(level_data.doors[i]);
+    door.minX := Max(Min(door.minX + move_x, map_width - 1), 0);
+    door.maxX := Max(Min(door.maxX + move_x, map_width - 1), 0);
+    door.minY := Max(Min(door.minY + move_y, map_height - 1), 0);
+    door.maxY := Max(Min(door.maxY + move_y, map_height - 1), 0);
+    door.destPixelX := Max(Min(door.destPixelX + move_x * 16, map_width * 16 - 1), 0);
+    door.destPixelY := Max(Min(door.destPixelY + move_y * 16, map_height * 16 - 1), 0);
+    door.borderLeft := Max(Min(door.borderLeft + move_x, map_width - 1), 0);
+    door.borderRight := Max(Min(door.borderRight + move_x, map_width), 1);
+    door.borderTop := Max(Min(door.borderTop + move_y, map_height - 1), 0);
+    door.borderBottom := Max(Min(door.borderBottom + move_y, map_height), 1);
+  end;
+  // Shift switches
+  for i := 0 to level_data.numSwitches - 1 do
+  begin
+    switch := Addr(level_data.switches[i]);
+    switch.posX := Max(Min(switch.posX + move_x, map_width - 1), 0);
+    switch.posY := Max(Min(switch.posY + move_y, map_height - 1), 0);
+    // Shift remove-foreground-tiles switches
+    if switch.switchType = 4 then
+    begin
+      switch.var1 := Max(Min(switch.var1 + move_x, map_width - 1), 0);
+      switch.var2 := Max(Min(switch.var2 + move_y, map_height - 1), 0);
+    end;
+  end;
+  // Shift locks
+  for i := 0 to level_data.numLocks - 1 do
+  begin
+    lock := Addr(level_data.locks[i]);
+    lock.keyX := Max(Min(lock.keyX + move_x, map_width - 1), 0);
+    lock.keyY := Max(Min(lock.keyY + move_y, map_height - 1), 0);
+    lock.posX := Max(Min(lock.posX + move_x, map_width - 1), 0);
+    lock.posY := Max(Min(lock.posY + move_y, map_height - 1), 0);
+  end;
+  // Shift transformation blocks
+  for i := 0 to level_data.numTransblocks - 1 do
+  begin
+    transblock := get_transblock(i);
+    transblock.posX := Max(Min(transblock.posX + move_x, map_width - 1), 0);
+    transblock.posY := Max(Min(transblock.posY + move_y, map_height - 1), 0);
   end;
   // Finalize it
   reset_undo_history;
