@@ -131,7 +131,7 @@ object MainWindow: TMainWindow
       Top = 152
       Width = 38
       Height = 22
-      Hint = 'Background layer'
+      Hint = 'Background layer (Ctrl+B)'
       AllowAllUp = True
       GroupIndex = 1
       Down = True
@@ -145,7 +145,7 @@ object MainWindow: TMainWindow
       Top = 152
       Width = 38
       Height = 22
-      Hint = 'Foreground layer'
+      Hint = 'Foreground layer (Ctrl+F)'
       AllowAllUp = True
       GroupIndex = 2
       Down = True
@@ -159,7 +159,7 @@ object MainWindow: TMainWindow
       Top = 152
       Width = 38
       Height = 22
-      Hint = 'Draw foreground tiles transparently'
+      Hint = 'Draw foreground tiles transparently (Ctrl+A)'
       AllowAllUp = True
       GroupIndex = 3
       Down = True
@@ -173,7 +173,7 @@ object MainWindow: TMainWindow
       Top = 152
       Width = 38
       Height = 22
-      Hint = 'Show objects'
+      Hint = 'Show objects (Ctrl+J)'
       AllowAllUp = True
       GroupIndex = 4
       Down = True
@@ -187,7 +187,7 @@ object MainWindow: TMainWindow
       Top = 152
       Width = 38
       Height = 22
-      Hint = 'Mark tiles'
+      Hint = 'Mark tiles (Ctrl+X)'
       AllowAllUp = True
       GroupIndex = 6
       Caption = 'Tiles'
@@ -200,7 +200,7 @@ object MainWindow: TMainWindow
       Top = 152
       Width = 38
       Height = 22
-      Hint = 'Show grid'
+      Hint = 'Show grid (Ctrl+G)'
       AllowAllUp = True
       GroupIndex = 7
       Caption = 'Grid'
@@ -213,7 +213,7 @@ object MainWindow: TMainWindow
       Top = 152
       Width = 38
       Height = 22
-      Hint = 'Show markers'
+      Hint = 'Show markers (Ctrl+M)'
       AllowAllUp = True
       GroupIndex = 5
       Down = True
@@ -271,8 +271,11 @@ object MainWindow: TMainWindow
             Top = 272
             Width = 125
             Height = 17
+            Hint = 'Shift+E'
             Caption = 'Tile mode'
             Checked = True
+            ParentShowHint = False
+            ShowHint = False
             TabOrder = 0
             TabStop = True
             OnClick = EditingModeChange
@@ -282,7 +285,10 @@ object MainWindow: TMainWindow
             Top = 320
             Width = 77
             Height = 17
+            Hint = 'Shift+C'
             Caption = 'Block mode'
+            ParentShowHint = False
+            ShowHint = False
             TabOrder = 2
             OnClick = EditingModeChange
           end
@@ -291,7 +297,10 @@ object MainWindow: TMainWindow
             Top = 296
             Width = 125
             Height = 17
+            Hint = 'Shift+D'
             Caption = 'Pattern mode'
+            ParentShowHint = False
+            ShowHint = False
             TabOrder = 1
             OnClick = EditingModeChange
           end
@@ -344,8 +353,10 @@ object MainWindow: TMainWindow
               Height = 30
               Max = 8
               Min = 1
+              ParentShowHint = False
               PageSize = 1
               Position = 1
+              ShowHint = False
               TabOrder = 0
               ThumbLength = 16
               OnChange = tbBrushSizeChange
@@ -357,8 +368,10 @@ object MainWindow: TMainWindow
               Height = 30
               Max = 8
               Min = 1
+              ParentShowHint = False
               PageSize = 1
               Position = 1
+              ShowHint = False
               TabOrder = 1
               ThumbLength = 16
               OnChange = tbBrushSizeChange
@@ -408,7 +421,10 @@ object MainWindow: TMainWindow
             Top = 344
             Width = 129
             Height = 17
+            Hint = 'Shift+A/Z/X'
             Caption = 'Change tile type'
+            ParentShowHint = False
+            ShowHint = True
             TabOrder = 7
             OnClick = EditingModeChange
           end

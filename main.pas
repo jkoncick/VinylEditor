@@ -594,13 +594,11 @@ var
 begin
   cur_shift_state := Shift;
   case key of
-    // Esc:
-    27:
+    27: // Esc
     begin
-
+      rbTileMode.Checked := true;
     end;
-    // Space: open tileset window
-    32:
+    32: // Space: open tileset window
     begin
       if mode(mTile) then
       begin
@@ -615,11 +613,39 @@ begin
     end;
     107: // Num+
     begin
-      snTilesetOffsetDownClick(nil);
+      if EditorPages.ActivePageIndex = 0 then
+      begin
+        tbBrushWidth.Position := tbBrushWidth.Position + 1;
+        tbBrushHeight.Position := tbBrushWidth.Position;
+        render_editing_marker;
+      end else
+      if EditorPages.ActivePageIndex = 1 then
+      begin
+        seObjectAlignToFloor.Value := seObjectAlignToFloor.Value + 1;
+        mouse_already_clicked := false;
+        render_editing_marker;
+      end;
     end;
     109: // Num-
     begin
-      snTilesetOffsetUpClick(nil);
+      if EditorPages.ActivePageIndex = 0 then
+      begin
+        tbBrushWidth.Position := tbBrushWidth.Position - 1;
+        tbBrushHeight.Position := tbBrushWidth.Position;
+        render_editing_marker;
+      end else
+      if EditorPages.ActivePageIndex = 1 then
+      begin
+        seObjectAlignToFloor.Value := seObjectAlignToFloor.Value - 1;
+        mouse_already_clicked := false;
+        render_editing_marker;
+      end;
+    end;
+    192: // ` (key under ESC)
+    begin
+      tbBrushWidth.Position := 1;
+      tbBrushHeight.Position := 1;
+      render_editing_marker;
     end;
   end;
   // Shift + arrows = same as Num keys
@@ -640,8 +666,8 @@ begin
     39: {Right arrow} begin MapScrollH.Position := MapScrollH.Position + 1; key := 0; end;
     40: {Down arrow}  begin MapScrollV.Position := MapScrollV.Position + 1; key := 0; end;
   end;
-  // F1-F4 - Select page
-  if (key >= 112) and (key <= 115) then
+  // F1-F3 - Select page
+  if (key >= 112) and (key <= 114) then
   begin
     index := key - 112;
     EditorPages.ActivePageIndex := index;
@@ -662,8 +688,10 @@ begin
       ord('E'): begin rbTileMode.Checked := true; end;
       ord('D'): begin rbPatternMode.Checked := true; end;
       ord('C'): begin rbBlockMode.Checked := true; end;
-      ord('A'): begin cbAllLayers.Checked := not cbAllLayers.Checked; end;
-      ord('S'): if btnSavePreset.Visible then btnSavePresetClick(nil);
+      ord('S'): cbAllLayers.Checked := not cbAllLayers.Checked;
+      ord('A'): begin rbChangeTileType.Checked := true; cbxChangeTileType.ItemIndex := 0; cbxChangeTileTypeChange(nil); end;
+      ord('Z'): begin rbChangeTileType.Checked := true; cbxChangeTileType.ItemIndex := 1; cbxChangeTileTypeChange(nil); end;
+      ord('X'): begin rbChangeTileType.Checked := true; cbxChangeTileType.ItemIndex := 2; cbxChangeTileTypeChange(nil); end;
     end;
     exit;
   end;
@@ -676,7 +704,8 @@ begin
       ord('F'): begin sbForegroundLayer.Down := not sbForegroundLayer.Down; end;
       ord('A'): begin sbTransparentDraw.Down := not sbTransparentDraw.Down; end;
       ord('J'): begin sbShowObjects.Down := not sbShowObjects.Down; end;
-      ord('M'): begin sbMarkTiles.Down := not sbMarkTiles.Down; end;
+      ord('X'): begin sbMarkTiles.Down := not sbMarkTiles.Down; end;
+      ord('M'): begin sbShowMarkers.Down := not sbShowMarkers.Down; end;
       ord('G'): begin sbShowgrid.Down := not sbShowgrid.Down; end;
       else
         exit;
@@ -742,9 +771,18 @@ end;
 
 procedure TMainWindow.FormMouseWheelUp(Sender: TObject; Shift: TShiftState;
   MousePos: TPoint; var Handled: Boolean);
+var
+  key: word;
 begin
   if (MousePos.X - left) < (mapCanvas.Width + 30) then
   begin
+    if (ssCtrl in Shift) and not selection_started then
+    begin
+      key := 107;
+      FormKeyDown(Sender, key, Shift);
+      Handled := true;
+      exit;
+    end;
     if (MousePos.Y - top) < (mapCanvas.Height - 30)
     then
       MapScrollV.Position := MapScrollV.Position - 2
@@ -761,9 +799,18 @@ end;
 
 procedure TMainWindow.FormMouseWheelDown(Sender: TObject;
   Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+var
+  key: word;
 begin
   if (MousePos.X - left) < (mapCanvas.Width + 30) then
   begin
+    if (ssCtrl in Shift) and not selection_started then
+    begin
+      key := 109;
+      FormKeyDown(Sender, key, Shift);
+      Handled := true;
+      exit;
+    end;
     if (MousePos.Y - top) < (mapCanvas.Height - 30)
     then
       MapScrollV.Position := MapScrollV.Position + 2
@@ -1038,10 +1085,9 @@ end;
 procedure TMainWindow.KeyShortcuts1Click(Sender: TObject);
 begin
   Application.MessageBox(
-              'Space = Open preset window'#13'Shift + Space = Pattern presets'#13'Ctrl + Space = Block presets'#13'Arrows = Scroll map'#13'F1 - F4 = Select layer'#13'Tab = Toggle background/foreground layer'#13'Num +/- = Change object numbers in selected block'#13#13+
-              'Num 2/4/6/8 or Shift + Arrows:'#13'Tile mode: Change selected tile'#13'Pattern mode: Rotate pattern'#13'Block mode: Move block'#13#13+
-              'Shift + 1 - 8 = Change brush size'#13'Shift + E = Tile mode'#13'Shift + D = Pattern mode'#13'Shift + C = Block mode'#13'Shift + A = All layers mode'#13'Shift + S = Save pattern/block as preset'#13#13+
-              'Ctrl + A = Toggle foreground and hidden layer'#13'Ctrl + B/F/H/J = Toggle specific layer'#13'Ctrl + M = Show markers'#13'Ctrl + G = Show grid'#13#13+
+              'Space = Open preset window'#13'Shift + Space = Pattern presets'#13'Ctrl + Space = Block presets'#13'Arrows = Scroll map'#13'Tab = Toggle tile / object mode'#13'Num +/- = Adjust brush size / object alignment'#13#13+
+              'Num 2/4/6/8  or  Shift + Arrows:'#13'Tile mode: Change selected tile'#13'Pattern mode: Rotate pattern'#13'Block mode: Move block'#13#13+
+              'Shift + 1 - 8 = Change brush size'#13'Shift + E = Tile mode'#13'Shift + D = Pattern mode'#13'Shift + C = Block mode'#13'Shift + A/Z/X = Change tile type mode'#13'Shift + S = Toggle Copy both layers'#13#13+
               '0 - 9, A - Z = Select block/pattern preset',
               'Key Shortcuts',
               MB_OK or MB_ICONINFORMATION
@@ -1051,10 +1097,11 @@ end;
 procedure TMainWindow.Mouseactions1Click(Sender: TObject);
 begin
   Application.MessageBox(
-              'Tile mode:'#13'Left = Paint tile'#13'Right = Erase tile'#13'Middle = Copy tile'#13'Double click = Fill area ("Bucket")'#13'Shift + click = Auto-place window edge'#13'Ctrl + Select (Left) = Fill selected area'#13'Ctrl + Select (Right) = Erase selected area'#13#13+
-              'Pattern mode:'#13'Left = Paint pattern'#13'Right = Erase tile'#13'Middle = Copy single tile'#13'Double click = Fill area ("Bucket")'#13'Ctrl + Select = Fill selected area'#13'Shift + Select = Copy pattern from map'#13#13+
-              'Block mode:'#13'Left = Place block'#13'Right + Move = Scroll map'#13'Middle = Select empty block'#13'Shift + Select = Copy block from map'#13#13+
-              'Object mode:'#13'Left = Place object'#13'Right = Erase object'#13'Middle = Copy object'#13#13+
+              'Tile mode:'#13'Left = Paint tile'#13'Right = Erase tile (foreground layer only)'#13'Middle = Copy tile (priority fg/bg layer)'#13'Double click = Flood fill'#13'Ctrl + Left-Select = Fill selected area'#13'Ctrl + Right-Select = Erase selected area' + #13'Ctrl + Wheel = Change brush size'#13#13+
+              'Pattern mode:'#13'Left = Paint pattern'#13'Right = Erase tile (foreground layer only)'#13'Middle = Copy single tile'#13'Double click = Flood fill'#13'Ctrl + Select = Fill selected area'#13'Shift + Select = Copy pattern from map'#13#13+
+              'Block mode:'#13'Left = Place block'#13'Right + Move = Scroll map'#13'Middle = Copy single tile'#13'Shift + Select = Copy block from map'#13#13+
+              'Change tile type mode:'#13'Left = Change tile type'#13'Shift + Left = Auto-draw shadows around wall'#13'Right = Reverse change'#13'Middle = Copy single tile'#13#13+
+              'Object mode:'#13'Left = Place object / change position'#13'Shift + Left = Copy and place a new object'#13'Right = Erase object'#13'Middle = Select object'#13'Ctrl + Wheel = Adjust alignment to floor'#13#13+
               'Preset selection window:'#13'Left = Select preset'#13'Right = Delete preset'#13'Middle = Show/hide keys'#13#13+
               'Hold right button while selecting to scroll map.',
               'Mouse Actions',
@@ -1212,8 +1259,8 @@ begin
       cur_selected_preset[bpgPatternPreset] := -1;
       draw_block_image;
     end else
-    // Cancel current block
-    if mode(mBlockMode) then
+    // Select single tile and switch to tile mode
+    if mode(mBlockMode) or mode(mChangeTileType) then
     begin
       cur_tile_index := Map.get_tile_index_prio(map_x, map_y);
       rbTileMode.Checked := true;
@@ -2511,12 +2558,12 @@ begin
   StatusBar.Panels[3].Text := inttostr(Map.width)+' x '+inttostr(Map.height);
   set_window_titles(Archive.level_names[index]);
   SpritePropertiesDialog.update_contents;
+  TilePropertiesDialog.update_contents;
   // Rendering
   resize_map_canvas;
   render_minimap;
   render_map;
   update_level_data;
-  TilePropertiesDialog.update_contents;
 end;
 
 procedure TMainWindow.save_map_to_archive(index: integer);

@@ -991,14 +991,14 @@ begin
   for i := 0 to Length(level_data.objects) - 1 do
     level_data.objects[i].objType := 65535;
   level_data.numTransblocks := 0;
-  // Change tileset respectively
-  set_tileset(tileset_index);
   // Finalize it
   map_loaded := true;
   map_index := -1;
   reset_undo_history;
   compute_statistics;
   level_data_update_flags := all_level_data_update_flags;
+  // Change tileset respectively
+  set_tileset(tileset_index);  
 end;
 
 procedure TMap.load_map_from_archive(index: integer);
@@ -1039,14 +1039,14 @@ begin
     Archive.load_data(Addr(transblock_data), level_file_offset, transblock_size);
   init_transblock_offsets;
   Archive.close_archive(true);
-  // Change tileset respectively
-  Tileset.change_tileset_by_file_name(leveldata.tilesetName);
   // Finalize it
   map_loaded := true;
   map_index := index;
   reset_undo_history;
   compute_statistics;
   level_data_update_flags := all_level_data_update_flags;
+  // Change tileset respectively
+  Tileset.change_tileset_by_file_name(leveldata.tilesetName);
 end;
 
 procedure TMap.save_map_to_archive(index: integer);
@@ -1122,8 +1122,6 @@ begin
     BlockRead(map_file, transblock_data, transblock_size);
     init_transblock_offsets;
   end;
-  // Change tileset respectively
-  Tileset.change_tileset_by_file_name(leveldata.tilesetName);
   // Finalize it
   CloseFile(map_file);  
   map_loaded := true;
@@ -1131,6 +1129,8 @@ begin
   reset_undo_history;
   compute_statistics;
   level_data_update_flags := all_level_data_update_flags;
+  // Change tileset respectively
+  Tileset.change_tileset_by_file_name(leveldata.tilesetName);
 end;
 
 procedure TMap.save_map_file(filename: String);

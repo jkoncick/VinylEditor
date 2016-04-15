@@ -14,6 +14,7 @@ type
     procedure FormHide(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
+    procedure CMDialogKey(var AMessage: TCMDialogKey); message CM_DIALOGKEY;
     procedure BlockPresetImageMouseDown(Sender: TObject;
       Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
   private
@@ -88,6 +89,21 @@ begin
       key := ord('?');
     select_preset(Tileset.block_key_to_index(key));
   end;
+end;
+
+procedure TBlockPresetDialog.CMDialogKey(var AMessage: TCMDialogKey);
+begin
+  if AMessage.CharCode = VK_TAB then
+  begin
+    update_presets((preset_group + 1) and 1);
+    if preset_group = 1 then
+      MainWindow.rbBlockMode.Checked := true
+    else
+      MainWindow.rbPatternMode.Checked := true;
+    SetFocus;
+    AMessage.Result := 1;
+  end else
+    inherited;
 end;
 
 procedure TBlockPresetDialog.BlockPresetImageMouseDown(Sender: TObject;
