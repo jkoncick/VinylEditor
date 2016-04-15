@@ -329,6 +329,7 @@ type
     // Miscellaneous procedures
     procedure compute_statistics;
     function check_errors: String;
+    procedure set_tileset(tileset_index: integer);
 
     // Load & Save procedures
     procedure new_map(tileset_index: integer; width, height: integer);
@@ -949,12 +950,14 @@ end;
 
 function TMap.check_errors: String;
 begin
-  //if map_stats.cnt_crystals = 0 then
-  //begin
-  //  result := 'You must place at least one Magic Crystal.';
-  //  exit;
-  //end;
   result := '';
+end;
+
+procedure TMap.set_tileset(tileset_index: integer);
+begin
+  StrPLCopy(level_data.tilesetName, Archive.tileset_info[tileset_index].tileset_file_name, High(level_data.tilesetName));
+  StrPLCopy(level_data.paletteName, Archive.tileset_info[tileset_index].palette_file_name, High(level_data.paletteName));
+  Tileset.change_tileset(tileset_index);
 end;
 
 procedure TMap.new_map(tileset_index: integer; width, height: integer);
@@ -964,7 +967,7 @@ var
   level_index: integer;
 begin
   // Load a level using this tileset to retrieve sprite and tile properties
-  level_index := Archive.get_first_level_by_tileset(tileset_index);
+  level_index := Archive.tileset_info[tileset_index].level_number;
   load_map_from_archive(level_index);
   // Initialize map layers
   map_width := width;
@@ -988,6 +991,8 @@ begin
   for i := 0 to Length(level_data.objects) - 1 do
     level_data.objects[i].objType := 65535;
   level_data.numTransblocks := 0;
+  // Change tileset respectively
+  set_tileset(tileset_index);
   // Finalize it
   map_loaded := true;
   map_index := -1;
@@ -1034,6 +1039,8 @@ begin
     Archive.load_data(Addr(transblock_data), level_file_offset, transblock_size);
   init_transblock_offsets;
   Archive.close_archive(true);
+  // Change tileset respectively
+  Tileset.change_tileset_by_file_name(leveldata.tilesetName);
   // Finalize it
   map_loaded := true;
   map_index := index;
@@ -1115,6 +1122,8 @@ begin
     BlockRead(map_file, transblock_data, transblock_size);
     init_transblock_offsets;
   end;
+  // Change tileset respectively
+  Tileset.change_tileset_by_file_name(leveldata.tilesetName);
   // Finalize it
   CloseFile(map_file);  
   map_loaded := true;
@@ -1122,7 +1131,6 @@ begin
   reset_undo_history;
   compute_statistics;
   level_data_update_flags := all_level_data_update_flags;
-  Tileset.change_tileset(header[3]);
 end;
 
 procedure TMap.save_map_file(filename: String);
@@ -1138,7 +1146,7 @@ begin
   header[0] := ord('V');
   header[1] := ord('G');
   header[2] := ord('L');
-  header[3] := Tileset.current_tileset;
+  header[3] := 0;
   BlockWrite(map_file, header, sizeof(header));
   // Save map size
   BlockWrite(map_file, map_height, sizeof(map_height));

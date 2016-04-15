@@ -777,7 +777,6 @@ begin
     exit;
   tileset_index := SetDialog.TilesetSelection_List.ItemIndex;
   Map.new_map(tileset_index, SetDialog.SetMapSize_Width.Value, SetDialog.SetMapSize_Height.Value);
-  Tileset.change_tileset(tileset_index);
   // Update status bar and title
   StatusBar.Panels[3].Text := inttostr(Map.width)+' x '+inttostr(Map.height);
   StatusBar.Panels[4].Text := 'Map not saved';
@@ -951,15 +950,20 @@ begin
   if SetDialog.ModalResult = mrCancel then
     exit;
   tileset_index := SetDialog.TilesetSelection_List.ItemIndex;
-  Tileset.change_tileset(tileset_index);
+  Map.set_tileset(tileset_index);
   // Re-render everything
   render_minimap;
   render_map;
 end;
 
 procedure TMainWindow.Selectnext1Click(Sender: TObject);
+var
+  tileset_index: integer;
 begin
-  Tileset.next_tileset;
+  tileset_index := Tileset.current_tileset + 1;
+  if tileset_index >= Archive.tileset_count then
+    tileset_index := 0;
+  Map.set_tileset(tileset_index);    
   // Re-render everything
   render_minimap;
   render_map;
@@ -2513,12 +2517,10 @@ procedure TMainWindow.load_map_from_archive(index: integer);
 begin
   // Load map
   Map.load_map_from_archive(index);
-  // Change tileset respectively
-  Tileset.change_tileset(Archive.level_info[index].tileset);
   // Set status bar
-  StatusBar.Panels[4].Text := Archive.level_info[index].name;
+  StatusBar.Panels[4].Text := Archive.level_names[index];
   StatusBar.Panels[3].Text := inttostr(Map.width)+' x '+inttostr(Map.height);
-  set_window_titles(Archive.level_info[index].name);
+  set_window_titles(Archive.level_names[index]);
   SpritePropertiesDialog.update_contents;
   // Rendering
   resize_map_canvas;
@@ -2534,21 +2536,14 @@ var
 begin
   if not Map.loaded then
     exit;
-  // Check if current tileset and level tileset match
-  if Tileset.current_tileset <> Archive.level_info[index].tileset then
-  begin
-    if Application.MessageBox(PChar('The current tileset (' + Archive.tileset_info[Tileset.current_tileset].name + ') does not match with the tileset assigned to level ' + Archive.level_info[index].name + ' (' + Archive.tileset_info[Archive.level_info[index].tileset].name + ').' +
-      #13'Do you want to save the map anyway?'), 'Warning', MB_YESNO or MB_ICONWARNING) = IDNO then
-      exit;
-  end;
   // Save map
   old_index := Map.index;
   Map.save_map_to_archive(index);
   // Update map name on status bar if map index has changed
   if Map.index <> old_index then
   begin
-    StatusBar.Panels[4].Text := Archive.level_info[Map.index].name;
-    set_window_titles(Archive.level_info[Map.index].name);
+    StatusBar.Panels[4].Text := Archive.level_names[Map.index];
+    set_window_titles(Archive.level_names[Map.index]);
   end;
 end;
 

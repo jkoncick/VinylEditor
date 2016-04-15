@@ -15,12 +15,9 @@ type
     name: String;
     tileset_file_index: integer;
     palette_file_index: integer;
-  end;
-
-type
-  TLevelInfo = record
-    name: String;
-    tileset: integer;
+    tileset_file_name: string;
+    palette_file_name: string;
+    level_number: integer;
   end;
 
 type
@@ -59,7 +56,7 @@ type
     // Level variables
     level_base_index: Integer;
     level_count: Integer;
-    level_info: array of TLevelInfo;
+    level_names: array of string;
 
   public
     procedure init;
@@ -74,8 +71,6 @@ type
     procedure load_file_list;
     procedure load_palette(file_index: integer);
     procedure load_tileset_image(target: TBitmap; index: integer);
-
-    function get_first_level_by_tileset(tileset_index: integer): integer;
   end;
 
 var
@@ -161,7 +156,7 @@ begin
   ini := TMemIniFile.Create(filename);
   tmp_strings := TStringList.Create;
   decoder := TStringList.Create;
-  decoder.Delimiter := '.';
+  decoder.Delimiter := ';';
   // Load basic information
   level_base_index := ini.ReadInteger('Basic', 'First_Level_File_Index', 116);
   // Load tilesets
@@ -174,16 +169,16 @@ begin
     decoder.DelimitedText := ini.ReadString('Tilesets', tmp_strings[i], '');
     tileset_info[i].tileset_file_index := strtoint(decoder[0]);
     tileset_info[i].palette_file_index := strtoint(decoder[1]);
+    tileset_info[i].tileset_file_name := decoder[2];
+    tileset_info[i].palette_file_name := decoder[3];
+    tileset_info[i].level_number := strtoint(decoder[4]) - 1;
   end;
   // Load levels
   ini.ReadSection('Levels', tmp_strings);
   level_count := tmp_strings.Count;
-  SetLength(level_info, level_count);
+  SetLength(level_names, level_count);
   for i := 0 to level_count -1 do
-  begin
-    level_info[i].name := tmp_strings[i];
-    level_info[i].tileset := ini.ReadInteger('Levels', tmp_strings[i], 1) - 1;
-  end;
+    level_names[i] := tmp_strings[i];
   // Free memory
   ini.Destroy;
   tmp_strings.Destroy;
@@ -365,21 +360,6 @@ begin
     end;
   end;
   close_archive(true);
-end;
-
-function TArchive.get_first_level_by_tileset(tileset_index: integer): integer;
-var
-  i: integer;
-begin
-  result := -1;
-  for i := 0 to level_count - 1 do
-  begin
-    if level_info[i].tileset = tileset_index then
-    begin
-      result := i;
-      exit;
-    end;
-  end;
 end;
 
 end.

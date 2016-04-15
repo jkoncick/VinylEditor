@@ -75,7 +75,7 @@ var
   i: integer;
 begin
   for i := 0 to Archive.level_count - 1 do
-    LevelSelection_List.Items.Add(Archive.level_info[i].name);
+    LevelSelection_List.Items.Add(Archive.level_names[i]);
   LevelSelection_List.ItemIndex := 0;
   for i := 0 to Archive.tileset_count - 1 do
     TilesetSelection_List.Items.Add(Archive.tileset_info[i].name);

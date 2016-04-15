@@ -76,6 +76,7 @@ type
   public
     procedure init;
     procedure change_tileset(index: integer);
+    procedure change_tileset_by_file_name(name: string);
     procedure next_tileset;
     procedure use_custom_image(filename: String);
 
@@ -126,6 +127,18 @@ begin
   MainWindow.render_tileset;
 end;
 
+procedure TTileset.change_tileset_by_file_name(name: string);
+var
+  i: integer;
+begin
+  for i := 0 to Archive.tileset_count - 1 do
+    if Archive.tileset_info[i].tileset_file_name = name then
+    begin
+      change_tileset(i);
+      exit;
+    end;
+  Application.MessageBox(PChar('Unknown tileset file name ' + name), 'Error changing tileset', MB_ICONERROR);
+end;
 
 procedure TTileset.next_tileset;
 var
