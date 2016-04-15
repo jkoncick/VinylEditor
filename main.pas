@@ -2950,8 +2950,7 @@ begin
         tile_y := Map.pattern.tiles[x,y] div 20;
         src_rect := Rect(tile_x*16, tile_y*16, tile_x*16+16, tile_y*16+16);
         dest_rect := Rect(x*16*scale+border_x, y*16*scale+border_y, (x*16+16)*scale+border_x, (y*16+16)*scale+border_y);
-        if Map.pattern.tiles[x,y] <> 255 then
-          BlockImage.Canvas.CopyRect(dest_rect, Tileset.tileimage.Canvas, src_rect);
+        BlockImage.Canvas.CopyRect(dest_rect, Tileset.tileimage.Canvas, src_rect);
       end;
   end else
   // Block mode - render block
