@@ -325,6 +325,8 @@ type
   public
 
     item_buttons: array[0..Length(itemNames)-1] of TSpeedButton;
+    obj_prop_labels: array[1..5] of TLabel;
+    obj_prop_spinedits: array[1..5] of TSpinEdit;
 
     // Map canvas variables
     map_canvas_width: word;
@@ -483,6 +485,17 @@ begin
     item_buttons[i] := btn;
   end;
   sbObjectClick(item_buttons[0]);
+  // Initialize object property labels and spinedits
+  obj_prop_labels[1] := lbObjectVar1;
+  obj_prop_labels[2] := lbObjectVar2;
+  obj_prop_labels[3] := lbObjectVar3;
+  obj_prop_labels[4] := lbObjectVar4;
+  obj_prop_labels[5] := lbObjectVar5;
+  obj_prop_spinedits[1] := seObjectVar1;
+  obj_prop_spinedits[2] := seObjectVar2;
+  obj_prop_spinedits[3] := seObjectVar3;
+  obj_prop_spinedits[4] := seObjectVar4;
+  obj_prop_spinedits[5] := seObjectVar5;
   // Set up test map difficulty
   case Settings.TestMapDifficulty of
     0: Easy1.Checked := true;
@@ -1788,58 +1801,33 @@ end;
 procedure TMainWindow.cbxObjectTypeChange(Sender: TObject);
 var
   obj_index: integer;
-  obj_type: word;
   obj_behavior: word;
-  behv: ^TObjBehaviorInfo;
+  i: integer;
 begin
   render_editing_marker;
   if updating then
     exit;
   obj_index := lstObjectList.ItemIndex;
-  obj_type := Map.leveldata.objects[obj_index].objType;
   lstObjectList.Items[obj_index] := get_object_listitem(obj_index, cbxObjectType.ItemIndex);
-  // Object type was changed from none to some type
-  if (obj_type = 65535) and (cbxObjectType.ItemIndex <> -1) and (Map.leveldata.objects[obj_index].behavior = 0) then
-  begin
-    // Set default behavior and property values for that object
-    obj_behavior := Map.leveldata.usedSprites[cbxObjectType.ItemIndex].behavior;
-    cbxObjectBehavior.ItemIndex := obj_behavior;
-    cbxObjectBehaviorChange(nil);
-    behv := Addr(ObjectInfo.behaviors[obj_behavior]);
-    seObjectVar1.Value := behv.prop1def;
-    seObjectVar2.Value := behv.prop2def;
-    seObjectVar3.Value := behv.prop3def;
-    seObjectVar4.Value := behv.prop4def;
-    seObjectVar5.Value := behv.prop5def;
-  end else
-    ObjectPropertyChange(nil);
+  // Set default behavior and property values for that object
+  obj_behavior := ObjectInfo.get_obj_def_behavior(cbxObjectType.ItemIndex);
+  cbxObjectBehavior.ItemIndex := obj_behavior;
+  cbxObjectBehaviorChange(nil);
+  for i := 1 to 5 do
+    obj_prop_spinedits[i].Value := ObjectInfo.get_obj_def_property(cbxObjectType.ItemIndex, obj_behavior, i);
 end;
 
 procedure TMainWindow.cbxObjectBehaviorChange(Sender: TObject);
 var
-  binfo: ^TObjBehaviorInfo;
+  behv: ^TObjBehaviorInfo;
+  i: integer;
 begin
-  binfo := Addr(ObjectInfo.behaviors[cbxObjectBehavior.ItemIndex]);
-  if binfo.prop1 <> '' then
-    lbObjectVar1.Caption := binfo.prop1 + ':'
-  else
-    lbObjectVar1.Caption := '';
-  if binfo.prop2 <> '' then
-    lbObjectVar2.Caption := binfo.prop2 + ':'
-  else
-    lbObjectVar2.Caption := '';
-  if binfo.prop3 <> '' then
-    lbObjectVar3.Caption := binfo.prop3 + ':'
-  else
-    lbObjectVar3.Caption := '';
-  if binfo.prop4 <> '' then
-    lbObjectVar4.Caption := binfo.prop4 + ':'
-  else
-    lbObjectVar4.Caption := '';
-  if binfo.prop5 <> '' then
-    lbObjectVar5.Caption := binfo.prop5 + ':'
-  else
-    lbObjectVar5.Caption := '';
+  behv := Addr(ObjectInfo.behaviors[cbxObjectBehavior.ItemIndex]);
+  for i := 1 to 5 do
+    if behv.prop_names[i] <> '' then
+      obj_prop_labels[i].Caption := behv.prop_names[i] + ':'
+    else
+      obj_prop_labels[i].Caption := '';
   ObjectPropertyChange(nil);
 end;
 
@@ -2140,7 +2128,8 @@ begin
     begin
       Renderer.remove_editing_marker(MapCanvas.Canvas);
       exit;
-    end;
+    end else
+      mark_color := Objectinfo.get_obj_mark_color(cbxObjectType.ItemIndex);
     get_object_mouse_position(obj_x, obj_y, obj_width, obj_height);
     StatusBar.Panels[1].Text := format('%d.%.2d , %d.%.2d', [obj_x div 16, obj_x mod 16, obj_y div 16, obj_y mod 16]);
     // Draw object placement marker

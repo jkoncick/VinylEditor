@@ -36,6 +36,7 @@ type
     btnClear: TButton;
     lbChildSprite2: TLabel;
     cbxChildSprite2: TComboBox;
+    btnRecompute: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
@@ -46,6 +47,7 @@ type
     procedure btnCopyClick(Sender: TObject);
     procedure btnPasteClick(Sender: TObject);
     procedure btnClearClick(Sender: TObject);
+    procedure btnRecomputeClick(Sender: TObject);
   private
     updating: boolean;
     clipboard_format: cardinal;
@@ -189,6 +191,22 @@ begin
   update_mainwindow_object_types;
   update_contents;
   lstSpriteList.SetFocus;
+end;
+
+procedure TSpritePropertiesDialog.btnRecomputeClick(Sender: TObject);
+var
+  i: integer;
+  last_index: integer;
+begin
+  last_index := 0;
+  for i := 1 to Length(Map.leveldata.usedSprites) - 1 do
+  begin
+    if Map.level_data.usedSprites[i].name = '' then
+      continue;
+    Map.level_data.usedSprites[i].firstSpriteIndex := last_index;
+    last_index := last_index + Map.level_data.usedSprites[i].numSprites;
+  end;
+  update_sprite_properties;
 end;
 
 procedure TSpritePropertiesDialog.update_contents;

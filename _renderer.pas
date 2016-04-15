@@ -52,7 +52,7 @@ var
 
 implementation
 
-uses SysUtils, Math, main, _tileset, _archive;
+uses SysUtils, Math, main, _tileset, _archive, _objectinfo;
 
 procedure TRenderer.init;
 begin
@@ -401,15 +401,16 @@ begin
     exit;
   // Draw objects
   cnv_target.Pen.Style := psSolid;
-  cnv_target.Pen.Color := clRed;
   cnv_target.Pen.Width := 1;
   cnv_target.Brush.Style := bsClear;
-  cnv_target.Font.Color := clRed;
   for i := 0 to Length(Map.leveldata.objects) - 1 do
   begin
     obj := Addr(Map.leveldata.objects[i]);
     if obj.objType = 65535 then
       continue;
+    mark_color := ObjectInfo.get_obj_mark_color(obj.objType);
+    cnv_target.Pen.Color := mark_color;
+    cnv_target.Font.Color := mark_color;
     dest_rect := Rect((obj.pixelX - cnv_left * 16)*2, (obj.pixelY - cnv_top * 16)*2,
       (obj.pixelX - cnv_left * 16)*2+(Map.leveldata.usedSprites[obj.objType].width+1)*2, (obj.pixelY - cnv_top * 16)*2+(Map.leveldata.usedSprites[obj.objType].height+1)*2);
     cnv_target.Rectangle(dest_rect);

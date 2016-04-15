@@ -937,11 +937,11 @@ begin
     if level_data.objects[i].objType <> 65535 then
     begin
       Inc(map_stats.cnt_objects);
-      if ObjectInfo.behaviors[level_data.objects[i].behavior].ismonster then
+      if ObjectInfo.obj_is_monster(level_data.objects[i].objType) then
         Inc(map_stats.cnt_monsters);
-      if leveldata.usedSprites[level_data.objects[i].objType].name = 'healpot.cmp' then
+      if ObjectInfo.obj_is_heal_one(level_data.objects[i].objType) then
         Inc(map_stats.cnt_healpots);
-      if leveldata.usedSprites[level_data.objects[i].objType].name = 'healjug.cmp' then
+      if ObjectInfo.obj_is_heal_full(level_data.objects[i].objType) then
         Inc(map_stats.cnt_healjugs);
     end;
   end;

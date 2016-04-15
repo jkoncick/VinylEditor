@@ -288,4 +288,13 @@ object SpritePropertiesDialog: TSpritePropertiesDialog
     TabOrder = 15
     OnChange = SpritePropertyChange
   end
+  object btnRecompute: TButton
+    Left = 200
+    Top = 352
+    Width = 144
+    Height = 20
+    Caption = 'Recompute sprite indexes'
+    TabOrder = 16
+    OnClick = btnRecomputeClick
+  end
 end
