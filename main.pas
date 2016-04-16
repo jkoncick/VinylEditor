@@ -1112,7 +1112,7 @@ end;
 procedure TMainWindow.About1Click(Sender: TObject);
 begin
   ShowMessage('Vinyl Goddess from Mars Level Editor'#13#13+
-              'Made by Hisymak (kozten@seznam.cz)'#13'Alpha 0.5'#13'Date: 2016-02-12'#13#13+
+              'Made by Hisymak (kozten@seznam.cz)'#13'Version 1.0'#13'Date: 2016-04-16'#13#13+
               'Game version: '+ Archive.archive_version +#13#13+
               'Special thanks to Frenkel Smeijers and Malvineous'#13'for reverse-engineering the VGFM archive and tileset format'#13'and providing the information on Modding Wiki.'#13'http://www.shikadi.net/moddingwiki/Vinyl_Goddess_From_Mars');
 end;
@@ -2277,8 +2277,6 @@ begin
     tmp_strings.Add('0 - START');
     for i := 1 to Length(Map.leveldata.usedSprites) - 1 do
     begin
-      if ord(Map.leveldata.usedSprites[i].name[0]) = 0 then
-        continue;
       str := inttostr(i) + ' - ' + Map.leveldata.usedSprites[i].name;
       tmp_strings.Add(str);
     end;
